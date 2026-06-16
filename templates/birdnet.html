@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>鳥の声AI判定</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Yu Gothic", sans-serif;
+      margin: 0;
+      background: #0b1020;
+      color: white;
+      padding-bottom: 54px;
+    }
+    header {
+      padding: 24px 36px;
+      background: #12203a;
+      font-size: 34px;
+      font-weight: bold;
+    }
+    main {
+      padding: 36px;
+    }
+    .card {
+      background: #17233f;
+      border-radius: 24px;
+      padding: 36px;
+      min-height: 520px;
+      box-sizing: border-box;
+    }
+    .big {
+      font-size: 72px;
+      font-weight: bold;
+      margin: 24px 0;
+    }
+    .sub {
+      font-size: 30px;
+      opacity: 0.9;
+    }
+    .small {
+      font-size: 20px;
+      opacity: 0.75;
+    }
+    button {
+      font-size: 24px;
+      border: 0;
+      border-radius: 14px;
+      padding: 16px 24px;
+      margin: 8px;
+      cursor: pointer;
+      color: white;
+      font-weight: bold;
+      background: #2d3d66;
+      transition: transform 0.08s, background 0.15s;
+    }
+    button:hover {
+      transform: translateY(-1px);
+    }
+    button.active {
+      background: #4f8cff;
+      box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.25);
+    }
+    button.inactive {
+      background: #2d3d66;
+    }
+    .meter {
+      width: 100%;
+      height: 30px;
+      background: #081022;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 24px 0;
+    }
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: #70d87b;
+    }
+    .status-bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1000;
+      background: rgba(8, 16, 34, 0.96);
+      border-top: 1px solid rgba(148, 163, 184, 0.25);
+      color: rgba(226, 232, 240, 0.86);
+      font-size: 15px;
+      line-height: 1.45;
+      padding: 8px 16px;
+      box-sizing: border-box;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  </style>
+</head>
+<body>
+<header>鳥の声AI判定 / BirdNET</header>
+
+<main>
+  <div class="card">
+    <button id="birdnet_start_btn" class="active" onclick="startBirdnet()">開始</button>
+    <button id="birdnet_stop_btn" class="inactive" onclick="stopBirdnet()">停止</button>
+
+    <div class="sub">CH1 / UMG15B 音量</div>
+    <div class="meter"><div id="bar1" class="bar"></div></div>
+
+    <div id="area">
+      <div class="big">停止中</div>
+      <div class="sub">開始を押してください</div>
+    </div>
+  </div>
+</main>
+
+<div id="status" class="status-bar">Status: loading...</div>
+
+<script>
+function pct(x) {
+  return Math.min(100, Math.max(0, x * 1000));
+}
+
+function birdName(item) {
+  return item.display_name || item.japanese_name || item.common_name || item.scientific_name || "";
+}
+
+function setStartStopButtons(startId, stopId, isRunning) {
+  const startBtn = document.getElementById(startId);
+  const stopBtn = document.getElementById(stopId);
+
+  if (!startBtn || !stopBtn) return;
+
+  if (isRunning) {
+    startBtn.classList.remove("active");
+    startBtn.classList.add("inactive");
+    stopBtn.classList.remove("inactive");
+    stopBtn.classList.add("active");
+  } else {
+    startBtn.classList.remove("inactive");
+    startBtn.classList.add("active");
+    stopBtn.classList.remove("active");
+    stopBtn.classList.add("inactive");
+  }
+}
+
+async function startBirdnet() {
+  await fetch("/api/birdnet/start", {method: "POST"});
+}
+
+async function stopBirdnet() {
+  await fetch("/api/birdnet/stop", {method: "POST"});
+}
+
+async function refreshState() {
+  const r = await fetch("/api/state");
+  const s = await r.json();
+
+  document.getElementById("bar1").style.width = pct(s.audio.level_ch1) + "%";
+
+  setStartStopButtons("birdnet_start_btn", "birdnet_stop_btn", s.birdnet.running);
+
+  document.getElementById("status").textContent =
+    `Status: ${s.birdnet.status} / running=${s.birdnet.running} | ` +
+    `capture: ${s.birdnet.capture_status || ""} | ` +
+    `analyze: ${s.birdnet.analyze_status || ""} | ` +
+    `elapsed: ${s.birdnet.last_elapsed_seconds ?? "-"} s`;
+
+  const b = s.birdnet;
+  const det = b.latest_detection;
+
+  if (!b.running && !det) {
+    document.getElementById("area").innerHTML = `
+      <div class="big">停止中</div>
+      <div class="sub">開始を押してください</div>
+    `;
+    return;
+  }
+
+  if (det && det.top && det.top.length > 0) {
+    const top = det.top[0];
+    const name = birdName(top);
+    const conf = Math.round(top.confidence * 100);
+
+    let html = `
+      <div class="sub">${det.time}</div>
+      <div class="big">${name}</div>
+      <div class="sub">AIの自信度：${conf}%</div>
+      <div class="small">${top.scientific_name || ""} / ${top.common_name || ""}</div>
+    `;
+
+    if (det.top.length > 1) {
+      html += `<div class="small">ほかの候補：`;
+      for (let i = 1; i < det.top.length; i++) {
+        const item = det.top[i];
+        html += `${birdName(item)} ${Math.round(item.confidence * 100)}% `;
+      }
+      html += `</div>`;
+    }
+
+    document.getElementById("area").innerHTML = html;
+    return;
+  }
+
+  if (det) {
+    document.getElementById("area").innerHTML = `
+      <div class="sub">${det.time}</div>
+      <div class="big">${det.message}</div>
+    `;
+    return;
+  }
+
+  if (b.running) {
+    document.getElementById("area").innerHTML = `
+      <div class="big">判定中</div>
+      <div class="sub">音を待っています</div>
+    `;
+  }
+}
+
+setInterval(refreshState, 500);
+refreshState();
+</script>
+</body>
+</html>

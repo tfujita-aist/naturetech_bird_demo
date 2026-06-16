@@ -1,0 +1,1252 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>鳥の鳴きまねチャレンジ</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Yu Gothic", sans-serif;
+      margin: 0;
+      background: #0b1020;
+      color: white;
+      padding-bottom: 54px;
+    }
+    header {
+      padding: 24px 36px;
+      background: #12203a;
+    }
+    .title {
+      font-size: 34px;
+      font-weight: bold;
+    }
+    main {
+      padding: 36px;
+    }
+    .card {
+      background: #17233f;
+      border-radius: 24px;
+      padding: 36px;
+      min-height: 520px;
+      box-sizing: border-box;
+    }
+    button {
+      font-size: 28px;
+      border: 0;
+      border-radius: 14px;
+      padding: 18px 26px;
+      margin: 10px;
+      cursor: pointer;
+      color: white;
+      font-weight: bold;
+      background: #2d3d66;
+      transition: transform 0.08s, background 0.15s, opacity 0.15s;
+    }
+    button:hover {
+      transform: translateY(-1px);
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+    button.active {
+      background: #4f8cff;
+      box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.25);
+    }
+    button.selected {
+      background: #ffd166;
+      color: #111827;
+      box-shadow: 0 0 0 4px rgba(255, 209, 102, 0.25);
+    }
+
+    .meter {
+      width: 100%;
+      height: 30px;
+      background: #081022;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 24px 0;
+    }
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: #70d87b;
+    }
+
+    .wave-card {
+      margin: 24px 0 0 0;
+      background: #081022;
+      border-radius: 18px;
+      padding: 20px;
+      width: 100%;
+      max-width: none;
+      box-sizing: border-box;
+    }
+    .wave-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 12px;
+    }
+    .wave-title {
+      font-size: 34px;
+      font-weight: bold;
+      line-height: 1.2;
+    }
+    .wave-legend {
+      display: flex;
+      justify-content: flex-end;
+      gap: 24px;
+      flex-wrap: wrap;
+      font-size: 25px;
+      font-weight: bold;
+      opacity: 0.96;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .legend-color {
+      width: 34px;
+      height: 11px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .legend-ref {
+      background: #1d4ed8;
+    }
+    .legend-user {
+      background: #ffd166;
+    }
+    .wave-wrap {
+      width: 100%;
+      overflow: hidden;
+      border-radius: 14px;
+      background: #020617;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-sizing: border-box;
+    }
+    canvas#wave_canvas {
+      width: 100%;
+      height: 400px;
+      background: #020617;
+      display: block;
+    }
+
+    .state-message {
+      margin-top: 34px;
+    }
+    .big {
+      font-size: 72px;
+      font-weight: bold;
+      margin: 0;
+      line-height: 1.14;
+    }
+    .sub {
+      font-size: 40px;
+      opacity: 0.96;
+      line-height: 1.35;
+      font-weight: bold;
+      margin-top: 14px;
+    }
+    .small {
+      font-size: 24px;
+      opacity: 0.82;
+    }
+
+    .countdown-number {
+      color: #ffd166;
+      font-size: 1em;
+      font-weight: 900;
+      display: inline-block;
+      min-width: 1.1em;
+      text-align: center;
+      vertical-align: baseline;
+    }
+
+    .result-block {
+      margin-top: 34px;
+    }
+    .result-top {
+      display: grid;
+      grid-template-columns: minmax(320px, 0.8fr) minmax(520px, 1.6fr);
+      gap: 30px;
+      align-items: stretch;
+    }
+    .result-main {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .score {
+      font-size: 124px;
+      font-weight: bold;
+      color: #ffd166;
+      line-height: 1.0;
+      margin: 0 0 20px 0;
+    }
+    .title-badge {
+      display: inline-block;
+      width: fit-content;
+      font-size: 42px;
+      font-weight: bold;
+      background: #ffd166;
+      color: #111827;
+      border-radius: 20px;
+      padding: 14px 24px;
+      margin: 0;
+    }
+    .score-panel {
+      background: rgba(0,0,0,0.14);
+      border-radius: 20px;
+      padding: 22px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .score-panel-title {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 16px;
+      color: rgba(226, 232, 240, 0.95);
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 14px;
+    }
+    .summary-item {
+      background: rgba(0,0,0,0.25);
+      border-radius: 18px;
+      padding: 18px 12px;
+      font-size: 28px;
+      font-weight: bold;
+      text-align: center;
+      line-height: 1.25;
+      min-height: 112px;
+      box-sizing: border-box;
+    }
+    .summary-value {
+      display: block;
+      font-size: 50px;
+      font-weight: bold;
+      color: #ffd166;
+      margin-top: 8px;
+    }
+    .result-comment {
+      font-size: 40px;
+      line-height: 1.36;
+      font-weight: bold;
+      opacity: 0.97;
+      max-width: none;
+      margin-top: 24px;
+    }
+    .result-comment.one-line {
+      white-space: nowrap;
+    }
+
+    details {
+      margin-top: 22px;
+      font-size: 24px;
+      opacity: 0.9;
+    }
+    summary {
+      cursor: pointer;
+    }
+    .details-body {
+      margin-top: 12px;
+      line-height: 1.7;
+    }
+
+    .status-bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1000;
+      background: rgba(8, 16, 34, 0.96);
+      border-top: 1px solid rgba(148, 163, 184, 0.25);
+      color: rgba(226, 232, 240, 0.86);
+      font-size: 15px;
+      line-height: 1.45;
+      padding: 8px 16px;
+      box-sizing: border-box;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @media (max-width: 1250px) {
+      .result-top {
+        grid-template-columns: 1fr;
+      }
+      .summary-grid {
+        grid-template-columns: repeat(2, minmax(150px, 1fr));
+      }
+      .result-comment.one-line {
+        white-space: normal;
+      }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="title">鳥の鳴きまねチャレンジ</div>
+</header>
+
+<main>
+  <div class="card">
+    <div class="sub">CH2 / UM230C 音量</div>
+    <div class="meter"><div id="bar2" class="bar"></div></div>
+
+    <div>
+      {% for key, sp in config.mimic.species.items() %}
+        <button id="species_btn_{{ key }}" class="species_btn active" onclick="startMimic('{{ key }}')">
+          {{ sp.japanese_name }}
+        </button>
+      {% endfor %}
+    </div>
+
+    <div class="wave-card">
+      <div class="wave-header">
+        <div class="wave-title">声の波形</div>
+        <div class="wave-legend">
+          <span class="legend-item">
+            <span class="legend-color legend-ref"></span>
+            お手本
+          </span>
+          <span class="legend-item">
+            <span class="legend-color legend-user"></span>
+            あなたの声
+          </span>
+        </div>
+      </div>
+      <div class="wave-wrap">
+        <canvas id="wave_canvas"></canvas>
+      </div>
+    </div>
+
+    <div id="area">
+      <div class="state-message">
+        <div class="big">鳥を選んで、鳴き声をまねしてみよう！</div>
+        <div class="sub">お手本を聞いてから3秒間チャレンジします</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="status" class="status-bar">Status: loading...</div>
+
+<script>
+const MIMIC_CONFIG = {{ config.mimic | tojson }};
+const MIMIC_SPECIES = {{ config.mimic.species | tojson }};
+
+let selectedSpeciesKey = null;
+let mimicBusy = false;
+let sequentialReferenceIndexes = {};
+
+let audioContext = null;
+let audioBufferCache = new Map();
+
+let lastReferenceBuffer = null;
+let lastUserBuffer = null;
+
+let liveMicStream = null;
+let liveMicSource = null;
+let liveMicProcessor = null;
+let liveMicData = [];
+let liveMicRecording = false;
+let liveMicStartedAt = 0;
+let liveMicExpectedSeconds = 3.0;
+let displayWaveSeconds = 3.0;
+let liveAnimationId = null;
+
+function pct(x) {
+  return Math.min(100, Math.max(0, x * 1000));
+}
+
+function getScoreSeconds() {
+  return Number(MIMIC_CONFIG.record_seconds || 3.0);
+}
+
+function getCaptureSeconds() {
+  const base = Number(MIMIC_CONFIG.record_seconds || 3.0);
+  const extra = Number(MIMIC_CONFIG.alignment_extra_seconds || 0.0);
+  return base + Math.max(0, extra);
+}
+
+function getAudioContext() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioContext;
+}
+
+async function loadAudioBuffer(url) {
+  if (!url) return null;
+
+  if (audioBufferCache.has(url)) {
+    return audioBufferCache.get(url);
+  }
+
+  const ctx = getAudioContext();
+  const resp = await fetch(url);
+  const arr = await resp.arrayBuffer();
+  const buf = await ctx.decodeAudioData(arr);
+
+  audioBufferCache.set(url, buf);
+  return buf;
+}
+
+function getMonoData(audioBuffer) {
+  if (!audioBuffer) return new Float32Array(0);
+
+  if (audioBuffer.numberOfChannels === 1) {
+    return audioBuffer.getChannelData(0);
+  }
+
+  const len = audioBuffer.length;
+  const out = new Float32Array(len);
+
+  for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
+    const data = audioBuffer.getChannelData(ch);
+    for (let i = 0; i < len; i++) {
+      out[i] += data[i] / audioBuffer.numberOfChannels;
+    }
+  }
+
+  return out;
+}
+
+function resizeWaveCanvas() {
+  const canvas = document.getElementById("wave_canvas");
+  if (!canvas) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+
+  const newWidth = Math.max(700, Math.floor(rect.width * dpr));
+  const newHeight = Math.max(340, Math.floor(rect.height * dpr));
+
+  if (canvas.width !== newWidth || canvas.height !== newHeight) {
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+  }
+}
+
+function drawWaveform({
+  referenceBuffer = null,
+  userBuffer = null,
+  liveUserData = null,
+  referenceProgress = 1.0,
+  userProgress = 1.0,
+  liveProgress = null,
+  message = "",
+} = {}) {
+  const canvas = document.getElementById("wave_canvas");
+  if (!canvas) return;
+
+  resizeWaveCanvas();
+
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  ctx.fillStyle = "#020617";
+  ctx.fillRect(0, 0, w, h);
+
+  const plotLeft = Math.floor(w * 0.07);
+  const plotRight = Math.floor(w * 0.985);
+  const plotTop = Math.floor(h * 0.10);
+  const plotBottom = Math.floor(h * 0.76);
+  const plotW = plotRight - plotLeft;
+  const plotH = plotBottom - plotTop;
+  const midY = plotTop + plotH / 2;
+
+  drawAxes(ctx, {
+    h,
+    plotLeft,
+    plotRight,
+    plotTop,
+    plotBottom,
+    midY,
+    seconds: displayWaveSeconds,
+  });
+
+  if (referenceBuffer) {
+    drawSingleWaveform(
+      ctx,
+      getMonoData(referenceBuffer),
+      plotLeft,
+      plotRight,
+      plotTop,
+      plotBottom,
+      "#1d4ed8",
+      referenceProgress,
+      1.65
+    );
+  }
+
+  if (userBuffer) {
+    drawSingleWaveform(
+      ctx,
+      getMonoData(userBuffer),
+      plotLeft,
+      plotRight,
+      plotTop,
+      plotBottom,
+      "#ffd166",
+      userProgress,
+      1.45
+    );
+  }
+
+  if (liveUserData && liveUserData.length > 0) {
+    const progress = liveProgress === null ? 1.0 : liveProgress;
+    drawSingleWaveform(
+      ctx,
+      liveUserData,
+      plotLeft,
+      plotRight,
+      plotTop,
+      plotBottom,
+      "#ffd166",
+      progress,
+      1.45
+    );
+  }
+
+  if (message) {
+    drawOverlayMessage(ctx, message, plotLeft, plotRight, plotTop, plotBottom);
+  }
+}
+
+function drawOverlayMessage(ctx, message, plotLeft, plotRight, plotTop, plotBottom) {
+  const plotW = plotRight - plotLeft;
+  const plotH = plotBottom - plotTop;
+  const cx = plotLeft + plotW / 2;
+  const cy = plotTop + plotH * 0.42;
+
+  const fontSize = Math.max(34, ctx.canvas.height * 0.085);
+  ctx.font = `bold ${fontSize}px system-ui, -apple-system, BlinkMacSystemFont, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  const metrics = ctx.measureText(message);
+  const padX = fontSize * 0.85;
+  const padY = fontSize * 0.45;
+  const boxW = metrics.width + padX * 2;
+  const boxH = fontSize + padY * 2;
+  const x = cx - boxW / 2;
+  const y = cy - boxH / 2;
+
+  ctx.save();
+  ctx.globalAlpha = 0.92;
+  ctx.fillStyle = "#020617";
+  roundRect(ctx, x, y, boxW, boxH, 18);
+  ctx.fill();
+
+  ctx.globalAlpha = 1.0;
+  ctx.strokeStyle = "rgba(255, 209, 102, 0.65)";
+  ctx.lineWidth = 3;
+  roundRect(ctx, x, y, boxW, boxH, 18);
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffd166";
+  ctx.fillText(message, cx, cy);
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.lineTo(x + w - rr, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+  ctx.lineTo(x + w, y + h - rr);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+  ctx.lineTo(x + rr, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+  ctx.lineTo(x, y + rr);
+  ctx.quadraticCurveTo(x, y, x + rr, y);
+  ctx.closePath();
+}
+
+function drawAxes(ctx, p) {
+  const {
+    h,
+    plotLeft,
+    plotRight,
+    plotTop,
+    plotBottom,
+    midY,
+    seconds,
+  } = p;
+
+  const plotW = plotRight - plotLeft;
+  const plotH = plotBottom - plotTop;
+
+  ctx.fillStyle = "#020617";
+  ctx.fillRect(plotLeft, plotTop, plotW, plotH);
+
+  const tickFont = `${Math.max(18, h * 0.044)}px system-ui, -apple-system, BlinkMacSystemFont, sans-serif`;
+  const labelFont = `bold ${Math.max(21, h * 0.052)}px system-ui, -apple-system, BlinkMacSystemFont, sans-serif`;
+
+  const ampTicks = [-1.0, -0.5, 0.0, 0.5, 1.0];
+
+  for (const amp of ampTicks) {
+    const y = midY - amp * (plotH / 2);
+
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.16)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(plotLeft, y);
+    ctx.lineTo(plotRight, y);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(226, 232, 240, 0.78)";
+    ctx.font = tickFont;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillText(amp.toFixed(1), plotLeft - 12, y);
+  }
+
+  const secMax = Math.max(1, seconds || 3.0);
+  const secTicks = Math.floor(secMax);
+
+  for (let i = 0; i <= secTicks; i++) {
+    const x = plotLeft + plotW * (i / secMax);
+
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.16)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, plotTop);
+    ctx.lineTo(x, plotBottom);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(226, 232, 240, 0.78)";
+    ctx.font = tickFont;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(`${i}s`, x, plotBottom + 10);
+  }
+
+  ctx.strokeStyle = "rgba(226, 232, 240, 0.45)";
+  ctx.lineWidth = 1.8;
+  ctx.strokeRect(plotLeft, plotTop, plotW, plotH);
+
+  ctx.fillStyle = "rgba(226, 232, 240, 0.88)";
+  ctx.font = labelFont;
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.fillText("時間（秒）", plotLeft + plotW / 2, plotBottom + 54);
+
+  ctx.save();
+  ctx.translate(32, plotTop + plotH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("音の大きさ（振幅）", 0, 0);
+  ctx.restore();
+
+  ctx.strokeStyle = "rgba(226, 232, 240, 0.55)";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(plotLeft, midY);
+  ctx.lineTo(plotRight, midY);
+  ctx.stroke();
+}
+
+function drawSingleWaveform(ctx, data, plotLeft, plotRight, plotTop, plotBottom, color, progress, gain) {
+  if (!data || data.length === 0) return;
+
+  progress = Math.min(1, Math.max(0, progress));
+
+  const plotW = plotRight - plotLeft;
+  const plotH = plotBottom - plotTop;
+  const visibleWidth = Math.max(1, Math.floor(plotW * progress));
+  const step = Math.max(1, Math.floor(data.length / plotW));
+  const mid = plotTop + plotH / 2;
+  const amp = plotH * 0.48;
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(2.2, ctx.canvas.height * 0.0065);
+  ctx.globalAlpha = 0.95;
+
+  ctx.beginPath();
+
+  for (let x = 0; x < visibleWidth; x++) {
+    const start = x * step;
+    const end = Math.min(start + step, data.length);
+
+    let min = 1.0;
+    let max = -1.0;
+
+    for (let i = start; i < end; i++) {
+      let v = data[i] * gain;
+      v = Math.tanh(v * 1.4);
+
+      if (v < min) min = v;
+      if (v > max) max = v;
+    }
+
+    const px = plotLeft + x;
+    const y1 = mid - max * amp;
+    const y2 = mid - min * amp;
+
+    if (x === 0) {
+      ctx.moveTo(px, y1);
+    }
+
+    ctx.lineTo(px, y1);
+    ctx.lineTo(px, y2);
+  }
+
+  ctx.stroke();
+  ctx.globalAlpha = 1.0;
+}
+
+function setSelectedSpecies(speciesKey) {
+  selectedSpeciesKey = speciesKey;
+
+  document.querySelectorAll(".species_btn").forEach(btn => {
+    btn.classList.remove("selected");
+    btn.classList.add("active");
+  });
+
+  const btn = document.getElementById(`species_btn_${speciesKey}`);
+  if (btn) {
+    btn.classList.add("selected");
+    btn.classList.remove("active");
+  }
+}
+
+function setSpeciesButtonsDisabled(disabled) {
+  document.querySelectorAll(".species_btn").forEach(btn => {
+    btn.disabled = disabled;
+  });
+}
+
+function getReferenceWavs(speciesKey) {
+  const sp = MIMIC_SPECIES[speciesKey];
+  if (!sp) return [];
+
+  if (Array.isArray(sp.reference_wavs) && sp.reference_wavs.length > 0) {
+    return sp.reference_wavs;
+  }
+
+  if (sp.reference_audio) {
+    return [sp.reference_audio];
+  }
+
+  if (sp.reference_wav) {
+    return [sp.reference_wav];
+  }
+
+  return [];
+}
+
+function getReferenceSelectionMode(speciesKey) {
+  const sp = MIMIC_SPECIES[speciesKey];
+
+  if (sp && sp.reference_selection_mode) {
+    return sp.reference_selection_mode;
+  }
+
+  return MIMIC_CONFIG.reference_selection_mode || "fixed";
+}
+
+function getFixedReferenceIndex(speciesKey, wavCount) {
+  const sp = MIMIC_SPECIES[speciesKey];
+
+  let idx = MIMIC_CONFIG.fixed_reference_index ?? 0;
+
+  if (sp && sp.fixed_reference_index !== undefined) {
+    idx = sp.fixed_reference_index;
+  }
+
+  idx = Number(idx);
+
+  if (!Number.isFinite(idx)) {
+    idx = 0;
+  }
+
+  if (idx < 0) {
+    idx = 0;
+  }
+
+  if (idx >= wavCount) {
+    idx = wavCount - 1;
+  }
+
+  return idx;
+}
+
+function chooseReference(speciesKey) {
+  const wavs = getReferenceWavs(speciesKey);
+
+  if (wavs.length === 0) {
+    return {
+      index: 0,
+      path: null,
+      mode: "none",
+      count: 0,
+    };
+  }
+
+  const mode = getReferenceSelectionMode(speciesKey);
+  let index = 0;
+
+  if (mode === "random") {
+    index = Math.floor(Math.random() * wavs.length);
+
+  } else if (mode === "sequential") {
+    const current = sequentialReferenceIndexes[speciesKey] ?? 0;
+    index = current % wavs.length;
+    sequentialReferenceIndexes[speciesKey] = (index + 1) % wavs.length;
+
+  } else {
+    index = getFixedReferenceIndex(speciesKey, wavs.length);
+  }
+
+  return {
+    index: index,
+    path: wavs[index],
+    mode: mode,
+    count: wavs.length,
+  };
+}
+
+function referenceUrl(path) {
+  if (!path) return null;
+  return "/" + path.replace(/^\/+/, "");
+}
+
+function basename(path) {
+  if (!path) return "";
+  return path.split("/").pop();
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function playAudioWithWaveform(url) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      displayWaveSeconds = getScoreSeconds();
+      lastReferenceBuffer = await loadAudioBuffer(url);
+      lastUserBuffer = null;
+
+      drawWaveform({
+        referenceBuffer: lastReferenceBuffer,
+        referenceProgress: 0,
+        message: "お手本の波形を描いています"
+      });
+
+      const audio = new Audio(url);
+
+      audio.onended = () => {
+        drawWaveform({
+          referenceBuffer: lastReferenceBuffer,
+          referenceProgress: 1,
+        });
+        resolve();
+      };
+
+      audio.onerror = () => {
+        reject(new Error("参考音声を再生できませんでした: " + url));
+      };
+
+      function animate() {
+        if (!audio.paused && !audio.ended) {
+          const duration = audio.duration || 1;
+          const progress = audio.currentTime / duration;
+
+          drawWaveform({
+            referenceBuffer: lastReferenceBuffer,
+            referenceProgress: progress,
+          });
+
+          requestAnimationFrame(animate);
+        }
+      }
+
+      const p = audio.play();
+
+      if (p && p.catch) {
+        p.catch(reject);
+      }
+
+      requestAnimationFrame(animate);
+
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+async function countdown(seconds) {
+  for (let i = seconds; i >= 1; i--) {
+    document.getElementById("area").innerHTML = `
+      <div class="state-message">
+        <div class="big">
+          録音開始まで <span class="countdown-number">${i}</span> 秒前
+        </div>
+      </div>
+    `;
+
+    drawWaveform({
+      referenceBuffer: lastReferenceBuffer,
+      referenceProgress: 1,
+      message: "まねする準備をしてね"
+    });
+
+    await sleep(1000);
+  }
+}
+
+async function startLiveMicWaveform(seconds) {
+  stopLiveMicWaveform();
+
+  liveMicData = [];
+  liveMicRecording = true;
+  liveMicExpectedSeconds = seconds || 3.0;
+  displayWaveSeconds = liveMicExpectedSeconds;
+  liveMicStartedAt = performance.now();
+
+  try {
+    const ctx = getAudioContext();
+
+    if (ctx.state === "suspended") {
+      await ctx.resume();
+    }
+
+    liveMicStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      },
+      video: false,
+    });
+
+    liveMicSource = ctx.createMediaStreamSource(liveMicStream);
+    liveMicProcessor = ctx.createScriptProcessor(2048, 1, 1);
+
+    liveMicProcessor.onaudioprocess = (event) => {
+      if (!liveMicRecording) return;
+
+      const input = event.inputBuffer.getChannelData(0);
+      for (let i = 0; i < input.length; i++) {
+        liveMicData.push(input[i]);
+      }
+
+      const maxSamples = Math.floor(ctx.sampleRate * liveMicExpectedSeconds);
+      if (liveMicData.length > maxSamples) {
+        liveMicData = liveMicData.slice(liveMicData.length - maxSamples);
+      }
+    };
+
+    liveMicSource.connect(liveMicProcessor);
+    liveMicProcessor.connect(ctx.destination);
+
+    animateLiveMicWaveform();
+
+  } catch (e) {
+    liveMicRecording = false;
+
+    drawWaveform({
+      referenceBuffer: lastReferenceBuffer,
+      referenceProgress: 1,
+      message: "ブラウザのマイク使用が許可されていないため、録音後に波形を表示します"
+    });
+  }
+}
+
+function animateLiveMicWaveform() {
+  if (!liveMicRecording) return;
+
+  const elapsed = (performance.now() - liveMicStartedAt) / 1000.0;
+  const progress = Math.min(1.0, elapsed / Math.max(liveMicExpectedSeconds, 0.1));
+  const data = new Float32Array(liveMicData);
+
+  drawWaveform({
+    referenceBuffer: lastReferenceBuffer,
+    liveUserData: data,
+    referenceProgress: 1,
+    liveProgress: progress,
+  });
+
+  liveAnimationId = requestAnimationFrame(animateLiveMicWaveform);
+}
+
+function stopLiveMicWaveform() {
+  liveMicRecording = false;
+
+  if (liveAnimationId !== null) {
+    cancelAnimationFrame(liveAnimationId);
+    liveAnimationId = null;
+  }
+
+  if (liveMicProcessor) {
+    try {
+      liveMicProcessor.disconnect();
+    } catch (e) {}
+    liveMicProcessor = null;
+  }
+
+  if (liveMicSource) {
+    try {
+      liveMicSource.disconnect();
+    } catch (e) {}
+    liveMicSource = null;
+  }
+
+  if (liveMicStream) {
+    for (const track of liveMicStream.getTracks()) {
+      track.stop();
+    }
+    liveMicStream = null;
+  }
+}
+
+async function drawResultWaveform(m) {
+  const refUrl = m.reference_audio_url || referenceUrl(m.reference_audio);
+  const userUrl = m.aligned_wav_url || m.wav_url;
+
+  try {
+    displayWaveSeconds = getScoreSeconds();
+
+    const refBuffer = await loadAudioBuffer(refUrl);
+    const userBuffer = await loadAudioBuffer(userUrl);
+
+    lastReferenceBuffer = refBuffer;
+    lastUserBuffer = userBuffer;
+
+    drawWaveform({
+      referenceBuffer: refBuffer,
+      userBuffer: userBuffer,
+      referenceProgress: 1,
+      userProgress: 1,
+    });
+
+  } catch (e) {
+    drawWaveform({
+      referenceBuffer: lastReferenceBuffer,
+      referenceProgress: 1,
+      message: "録音波形を読み込めませんでした"
+    });
+  }
+}
+
+function renderMimicResult(m) {
+  const alignmentText = Number.isFinite(Number(m.alignment_offset_seconds))
+    ? `${Number(m.alignment_offset_seconds).toFixed(3)}秒`
+    : "-";
+
+  const alignmentScoreText = Number.isFinite(Number(m.alignment_score))
+    ? `${Number(m.alignment_score).toFixed(3)}`
+    : "-";
+
+  if (m.valid === false || m.valid === "False") {
+    document.getElementById("area").innerHTML = `
+      <div class="state-message">
+        <div class="big">もう一度！</div>
+        <div class="result-comment one-line">${m.comment}</div>
+
+        <details>
+          <summary>くわしい結果を見る</summary>
+          <div class="details-body">
+            お手本: ${basename(m.reference_audio)}<br>
+            自動補正: ${alignmentText}<br>
+            補正の一致度: ${alignmentScoreText}<br>
+            peak ${m.user_peak} / rms ${m.user_rms}
+          </div>
+        </details>
+      </div>
+    `;
+
+    drawResultWaveform(m);
+    return;
+  }
+
+  document.getElementById("area").innerHTML = `
+    <div class="result-block">
+      <div class="result-top">
+        <div class="result-main">
+          <div class="score">${m.display_total ?? m.total}点</div>
+          <div class="title-badge">${m.title || ""}</div>
+        </div>
+
+        <div class="score-panel">
+          <div class="score-panel-title">くわしいスコア</div>
+          <div class="summary-grid">
+            <div class="summary-item">
+              リズム
+              <span class="summary-value">${m.rhythm}</span>
+            </div>
+            <div class="summary-item">
+              高さ
+              <span class="summary-value">${m.pitch}</span>
+            </div>
+            <div class="summary-item">
+              鳥っぽさ
+              <span class="summary-value">${m.shape}</span>
+            </div>
+            <div class="summary-item">
+              元気
+              <span class="summary-value">${m.energy}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="result-comment one-line">${m.comment}</div>
+
+      <details>
+        <summary>くわしい結果を見る</summary>
+        <div class="details-body">
+          お手本: ${basename(m.reference_audio)}<br>
+          詳細解析スコア ${m.strict_total}<br>
+          自動補正: ${alignmentText}<br>
+          補正の一致度: ${alignmentScoreText}<br>
+          大きさ ${m.loudness}<br>
+          peak ${m.user_peak} / rms ${m.user_rms}
+        </div>
+      </details>
+    </div>
+  `;
+
+  drawResultWaveform(m);
+}
+
+async function startMimic(speciesKey) {
+  const stateResp = await fetch("/api/state");
+  const state = await stateResp.json();
+
+  if (state.mimic.running || mimicBusy) {
+    document.getElementById("area").innerHTML = `
+      <div class="state-message">
+        <div class="big">処理中</div>
+        <div class="sub">少し待ってください</div>
+      </div>
+    `;
+    return;
+  }
+
+  mimicBusy = true;
+  setSpeciesButtonsDisabled(true);
+  setSelectedSpecies(speciesKey);
+
+  const sp = MIMIC_SPECIES[speciesKey];
+  const ref = chooseReference(speciesKey);
+  const url = referenceUrl(ref.path);
+  const scoreSeconds = getScoreSeconds();
+  const captureSeconds = getCaptureSeconds();
+
+  try {
+    document.getElementById("area").innerHTML = `
+      <div class="state-message">
+        <div class="big">まず、お手本の鳴き声を聞いてね</div>
+      </div>
+    `;
+
+    drawWaveform({
+      message: "お手本を読み込み中..."
+    });
+
+    if (url) {
+      await playAudioWithWaveform(url);
+    }
+
+    await countdown(3);
+
+    document.getElementById("area").innerHTML = `
+      <div class="state-message">
+        <div class="big">${scoreSeconds}秒間チャレンジ中...</div>
+      </div>
+    `;
+
+    drawWaveform({
+      referenceBuffer: lastReferenceBuffer,
+      referenceProgress: 1,
+      message: "あなたの声を録音中..."
+    });
+
+    await startLiveMicWaveform(captureSeconds);
+
+    const r = await fetch(
+      `/api/mimic/${speciesKey}?reference_index=${ref.index}`,
+      {method: "POST"}
+    );
+
+    stopLiveMicWaveform();
+
+    const m = await r.json();
+
+    if (m.error) {
+      document.getElementById("area").innerHTML = `
+        <div class="state-message">
+          <div class="big">エラー</div>
+          <div class="sub">${m.error}</div>
+        </div>
+      `;
+      return;
+    }
+
+    renderMimicResult(m);
+
+  } catch (e) {
+    stopLiveMicWaveform();
+
+    document.getElementById("area").innerHTML = `
+      <div class="state-message">
+        <div class="big">エラー</div>
+        <div class="sub">${e.message}</div>
+      </div>
+    `;
+  } finally {
+    mimicBusy = false;
+    setSpeciesButtonsDisabled(false);
+  }
+}
+
+async function refreshState() {
+  const r = await fetch("/api/state");
+  const s = await r.json();
+
+  document.getElementById("bar2").style.width = pct(s.audio.level_ch2) + "%";
+
+  document.getElementById("status").textContent =
+    `Status: ${s.mimic.status} / running=${s.mimic.running} | ` +
+    `audio CH2 level=${Number(s.audio.level_ch2 || 0).toFixed(5)}`;
+}
+
+window.addEventListener("resize", () => {
+  drawWaveform({
+    referenceBuffer: lastReferenceBuffer,
+    userBuffer: lastUserBuffer,
+    referenceProgress: 1,
+    userProgress: 1,
+    message: lastReferenceBuffer ? "" : "鳥を選ぶと、お手本とあなたの声の波形がここに出ます",
+  });
+});
+
+drawWaveform({
+  message: "鳥を選ぶと、お手本とあなたの声の波形がここに出ます"
+});
+
+setInterval(refreshState, 500);
+refreshState();
+</script>
+</body>
+</html>

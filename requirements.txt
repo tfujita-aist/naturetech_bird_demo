@@ -1,0 +1,12 @@
+birdnet-analyzer
+sounddevice
+soundfile
+numpy
+pandas
+scipy
+librosa
+fastapi
+uvicorn
+jinja2
+pyyaml
+python-multipart

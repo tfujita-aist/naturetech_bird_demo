@@ -1,0 +1,359 @@
+audio:
+  sample_rate: 48000
+  block_size: 1024
+
+#=======================
+# YAMAHA UR22C を使う場合
+#=======================
+  channels: 2
+  # list_audio_devices.py で表示されたデバイス番号と名前を設定する
+  device_index: 5
+  device_name_contains: "Steinberg UR22C"
+  # CH1 = UR22C INPUT 1 = UETAX UMG15B = BirdNET用
+  # CH2 = UR22C INPUT 2 = UETAX UM230C = 鳴き真似用
+  birdnet_channel: 0
+  mimic_channel: 1
+
+# #=======================
+# # MacBook Pro のマイクを使う場合
+# #=======================
+#   channels: 1
+#   # list_audio_devices.py で表示されたデバイス番号と名前を設定する
+#   device_index: 6
+#   device_name_contains: "MacBook Proのマイク"
+#   # 1chしかないため、どちらも 0 を指定
+#   birdnet_channel: 0
+#   mimic_channel: 0
+
+birdnet:
+  # 推論方式
+  #   direct: BirdNET モデル常駐・高速推論バージョン (本番向け)
+  #   cli: python -m birdnet_analyzer.analyze を呼ぶ CLI バージョン (検証・デバッグ向け)
+  inference_mode: "direct"
+
+  # BirdNET v2.4 日本語ラベル
+  labels_ja_path: ".venv/lib/python3.11/site-packages/birdnet_analyzer/labels/V2.4/BirdNET_GLOBAL_6K_V2.4_Labels_ja.txt"
+
+  # 1秒ごとに最新3秒を切り出す
+  analyze_interval_seconds: 1.0
+  # 直近3秒を使う
+  window_seconds: 3.0
+
+  # BirdNETに渡す最低信頼度
+  # cli版では --min_conf に渡す
+  # direct版ではこの値未満の候補を DataFrame 化しない
+  min_confidence: 0.01
+  # min_confidence: 0.25
+
+  # UI表示用の最低信頼度
+  # デバッグ中は 0.01 推奨。
+  # 本番では 0.10〜0.25 程度が候補
+  display_confidence: 0.10
+  # display_confidence: 0.40
+
+  # direct版のTFLite推論スレッド数 （MacBook Pro M3Max なら 2 や 4 も試せるが、1でも十分速い可能性が高い）
+  tflite_threads: 1
+
+  # direct版でBirdNETのlat/lon/weekの種リスト補正を行うかどうか (true の場合は lat/lon/week の補正を有効にする)
+  use_location_filter: false
+
+  # 緯度経度は熊本市付近  TODO 会場の住所に合わせる
+  # week は
+  #   2026/7/1-7/7 : 25
+  #   2026/7/8-7/14 : 26
+  #   2026/7/15-7/21 : 27
+  #   2026/7/22-7/31 : 28
+  latitude: 32.803
+  longitude: 130.707
+  week: 26
+
+  # cli版ではinput_dirにWAV、output_dirにCSVが生成される
+  # direct版ではWAV/CSVは生成しないが、log_csvには検出ログを書き込む
+  input_dir: "work/birdnet_in"
+  output_dir: "work/birdnet_out"
+  log_csv: "logs/detections.csv"
+
+  # 空リスト [] の場合は、BirdNETが出した候補をすべて表示対象にする
+  # 表示制限したい場合は、学名または和名で指定
+  allowed_scientific_names: []
+  allowed_japanese_names: []
+
+  # 例：カラス類だけ見せたい場合
+  # allowed_scientific_names:
+  #   - Corvus corone
+  #   - Corvus macrorhynchos
+  #   - Corvus frugilegus
+  #   - Corvus dauuricus
+  #   - Corvus enca
+  #   - Corvus cornix
+
+  # 例：日本語名で絞りたい場合
+  # allowed_japanese_names:
+  #   - モズ
+  #   - シジュウカラ
+  #   - ヤマガラ
+  #   - メジロ
+  #   - ウグイス
+  #   - キジバト
+  #   - ヒヨドリ
+  #   - ホオジロ
+  #   - ハクセキレイ
+  #   - トビ
+
+mimic:
+  # 採点対象にする長さ
+  record_seconds: 3.0
+  # 録音開始・再生開始のズレを吸収するため録音マージン
+  # 例: record_seconds=3.0, alignment_extra_seconds=1.0 の場合、４秒間録音し、その中からお手本に一番合う3秒区間を探して採点する
+  alignment_extra_seconds: 1.0
+
+  output_dir: "work/mimic_recordings"
+  log_csv: "logs/mimic_scores.csv"
+
+  # 採点モード
+  #   strict: ガチ判定のみ
+  #   game:   ゲーム判定のみ
+  #   both:   両方計算し、画面はゲーム点、ログには両方保存
+  scoring_mode: "both"
+
+  # 鳴き真似として有効とみなす最低音量
+  # 環境音だけで高得点になるのを防ぐための閾値
+  min_user_rms: 0.005
+  min_user_peak: 0.030
+  min_voiced_ratio: 0.08
+
+  # 複数のお手本WAVがある場合の選び方
+  #   fixed:
+  #     常に fixed_reference_index のWAVを使う
+  #   sequential:
+  #     scene1, scene2, scene3... の順に使う
+  #     最後まで行ったら先頭に戻る
+  #   random:
+  #     毎回ランダムに使う
+  # この設定は全ての鳥で共通
+  # 各 species 側に reference_selection_mode や fixed_reference_index を書けば、鳥ごとに上書き可
+  reference_selection_mode: "random"
+  # fixed のときに使うWAVファイルのインデックス番号
+  # 0 が1つ目、1 が2つ目
+  fixed_reference_index: 0
+
+  # ガチ判定用の採点設定
+  strict_scoring:
+    # これまで shape が強すぎたため、shape の比重を下げる
+    # 音量差はマイク距離やスピーカー音量の影響を強く受けるため、重みを下げる
+    rhythm_weight: 0.36
+    shape_weight: 0.43
+    pitch_weight: 0.16
+    loudness_weight: 0.05
+
+    # 音の形スコアの厳しさ
+    # 大きくすると不一致に厳しくなる
+    shape_strictness: 1.35
+
+    # 音の形スコアの内訳
+    # DTWだけではマイク再録音に厳しすぎるため、
+    # profile と cosine を強めに入れる
+    mel_dtw_weight: 0.22
+    mfcc_weight: 0.18
+    centroid_weight: 0.10
+    mel_cosine_weight: 0.27
+    spectral_profile_weight: 0.23
+
+    # 「音の形が似ている」とコメントする最低条件
+    shape_comment_min_shape: 70.0
+    shape_comment_min_total: 68.0
+
+  # ゲーム判定用の採点設定
+  game_scoring:
+    rhythm_weight: 0.40
+    pitch_weight: 0.30
+    shape_weight: 0.15
+    energy_weight: 0.15
+
+    # 声が十分入っていれば高得点に寄せるための目安
+    energy_target_rms: 0.030
+    energy_target_peak: 0.180
+
+    # 有効な声が入った場合の最低限のゲーム感
+    min_valid_score: 35.0
+
+    # 「かなり似ている」と見せる目安
+    good_score: 70.0
+    excellent_score: 85.0
+
+  title_bands:
+    - min_score: 95
+      title: "本物と会話できる鳥人級！"
+    - min_score: 90
+      title: "森の通訳者級！"
+    - min_score: 80
+      title: "鳥の友達級！"
+    - min_score: 70
+      title: "かなり鳥っぽい級！"
+    - min_score: 60
+      title: "鳥まねチャレンジャー級！"
+    - min_score: 50
+      title: "もう少しで鳥語級！"
+    - min_score: 0
+      title: "まだ人間だった級！"
+
+  species:
+    hashibosogarasu:
+      japanese_name: "ハシボソガラス"
+      reference_selection_mode: "fixed"
+      fixed_reference_index: 0
+      title_bands:
+        - min_score: 90
+          title: "カァカァ会議の議長級！"
+        - min_score: 80
+          title: "カラスの友達級！"
+        - min_score: 70
+          title: "電線の人気者級！"
+        - min_score: 60
+          title: "カァカァ修行中！"
+        - min_score: 0
+          title: "まだ人間の声かも級！"
+      reference_wavs:
+        - "reference_sounds/hashibosogarasu_scene1.wav"
+        - "reference_sounds/hashibosogarasu_scene2.wav"
+        - "reference_sounds/hashibosogarasu_scene3.wav"
+        - "reference_sounds/hashibosogarasu_scene4.wav"
+        - "reference_sounds/hashibosogarasu_scene5.wav"
+
+    hashibutogarasu:
+      japanese_name: "ハシブトガラス"
+      reference_selection_mode: "fixed"
+      fixed_reference_index: 0
+      title_bands:
+        - min_score: 90
+          title: "森のカラス王者級！"
+        - min_score: 80
+          title: "カラス語マスター級！"
+        - min_score: 70
+          title: "カラスの友達級！"
+        - min_score: 60
+          title: "カァカァ練習生！"
+        - min_score: 0
+          title: "まだ人間の声かも級！"
+      reference_wavs:
+        - "reference_sounds/hashibutogarasu_scene1.wav"
+        - "reference_sounds/hashibutogarasu_scene2.wav"
+        - "reference_sounds/hashibutogarasu_scene3.wav"
+        - "reference_sounds/hashibutogarasu_scene4.wav"
+        - "reference_sounds/hashibutogarasu_scene5.wav"
+
+    hiyodori:
+      japanese_name: "ヒヨドリ"
+      reference_selection_mode: "fixed"
+      fixed_reference_index: 0
+      title_bands:
+        - min_score: 90
+          title: "ヒヨドリ大合唱リーダー級！"
+        - min_score: 80
+          title: "町なかのピーヨ名人級！"
+        - min_score: 70
+          title: "ヒヨドリの友達級！"
+        - min_score: 60
+          title: "ピーヨ修行中！"
+        - min_score: 0
+          title: "まだ人間だった級！"
+      reference_wavs:
+        - "reference_sounds/hiyodori_scene1.wav"
+
+    kijibato:
+      japanese_name: "キジバト"
+      reference_selection_mode: "fixed"
+      fixed_reference_index: 0
+      title_bands:
+        - min_score: 90
+          title: "公園のポーポー王者級！"
+        - min_score: 80
+          title: "夕方の電線マスター級！"
+        - min_score: 70
+          title: "キジバトの友達級！"
+        - min_score: 60
+          title: "ポーポー練習生！"
+        - min_score: 0
+          title: "まだ人間だった級！"
+      reference_wavs:
+        - "reference_sounds/kijibato_scene1.wav"
+
+    niwatori:
+      japanese_name: "ニワトリ"
+      reference_selection_mode: "fixed"
+      fixed_reference_index: 0
+      title_bands:
+        - min_score: 90
+          title: "朝を告げる名人級！"
+        - min_score: 80
+          title: "コケコッコーマスター級！"
+        - min_score: 70
+          title: "ニワトリの友達級！"
+        - min_score: 60
+          title: "朝練コケコッコー級！"
+        - min_score: 0
+          title: "まだ人間だった級！"
+      reference_wavs:
+        - "reference_sounds/niwatori_scene1.wav"
+
+    ootaka:
+      japanese_name: "オオタカ"
+      reference_selection_mode: "fixed"
+      fixed_reference_index: 0
+      title_bands:
+        - min_score: 90
+          title: "森の猛きん使い級！"
+        - min_score: 80
+          title: "オオタカと会話できそう級！"
+        - min_score: 70
+          title: "森の見張り番級！"
+        - min_score: 60
+          title: "猛きん修行中！"
+        - min_score: 0
+          title: "まだ人間だった級！"
+      reference_wavs:
+        - "reference_sounds/ootaka_enhanced_clear_scene1.wav"
+        - "reference_sounds/ootaka_enhanced_clear_scene2.wav"
+
+    tonbi:
+      japanese_name: "トンビ"
+      reference_selection_mode: "fixed"
+      fixed_reference_index: 0
+      title_bands:
+        - min_score: 90
+          title: "空のピーヒョロ王者級！"
+        - min_score: 80
+          title: "上昇気流マスター級！"
+        - min_score: 70
+          title: "トンビの友達級！"
+        - min_score: 60
+          title: "ピーヒョロ見習い級！"
+        - min_score: 0
+          title: "まだ地上の人間級！"
+      reference_wavs:
+        - "reference_sounds/tonbi_scene1.wav"
+        - "reference_sounds/tonbi_scene2.wav"
+
+    uguisu:
+      japanese_name: "ウグイス"
+      reference_selection_mode: "fixed"
+      fixed_reference_index: 0
+      title_bands:
+        - min_score: 90
+          title: "春告げ名人級！"
+        - min_score: 80
+          title: "ホーホケキョマスター級！"
+        - min_score: 70
+          title: "ウグイスの友達級！"
+        - min_score: 60
+          title: "ホーホケキョ修行中！"
+        - min_score: 0
+          title: "まだ人間だった級！"
+      reference_wavs:
+        - "reference_sounds/uguisu_scene1.wav"
+        - "reference_sounds/uguisu_scene2.wav"
+        - "reference_sounds/uguisu_scene3.wav"
+        - "reference_sounds/uguisu_scene4.wav"
+
+ui:
+  title: "NATURE TECH！ 2026　鳥の声 AI デモ"
