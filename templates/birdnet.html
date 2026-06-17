@@ -14,8 +14,11 @@
     header {
       padding: 24px 36px;
       background: #12203a;
+    }
+    .title {
       font-size: 34px;
       font-weight: bold;
+      line-height: 1.25;
     }
     main {
       padding: 36px;
@@ -27,33 +30,31 @@
       min-height: 520px;
       box-sizing: border-box;
     }
-    .big {
-      font-size: 72px;
-      font-weight: bold;
-      margin: 24px 0;
-    }
-    .sub {
-      font-size: 30px;
-      opacity: 0.9;
-    }
-    .small {
-      font-size: 20px;
-      opacity: 0.75;
+    .button-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
     }
     button {
       font-size: 24px;
       border: 0;
       border-radius: 14px;
       padding: 16px 24px;
-      margin: 8px;
+      margin: 0;
       cursor: pointer;
       color: white;
       font-weight: bold;
       background: #2d3d66;
-      transition: transform 0.08s, background 0.15s;
+      transition: transform 0.08s, background 0.15s, opacity 0.15s;
     }
     button:hover {
       transform: translateY(-1px);
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
     }
     button.active {
       background: #4f8cff;
@@ -61,6 +62,29 @@
     }
     button.inactive {
       background: #2d3d66;
+      box-shadow: none;
+    }
+    .big {
+      font-size: 72px;
+      font-weight: bold;
+      margin: 24px 0;
+      line-height: 1.18;
+    }
+    .sub {
+      font-size: 30px;
+      opacity: 0.9;
+      line-height: 1.4;
+    }
+    .small {
+      font-size: 20px;
+      opacity: 0.75;
+      line-height: 1.5;
+    }
+    .meter-label {
+      font-size: 28px;
+      opacity: 0.95;
+      font-weight: bold;
+      margin-top: 20px;
     }
     .meter {
       width: 100%;
@@ -68,12 +92,26 @@
       background: #081022;
       border-radius: 999px;
       overflow: hidden;
-      margin: 24px 0;
+      margin: 14px 0 30px 0;
     }
     .bar {
       height: 100%;
       width: 0%;
       background: #70d87b;
+    }
+    .result-panel {
+      background: rgba(0,0,0,0.14);
+      border-radius: 20px;
+      padding: 28px;
+      margin-top: 24px;
+      box-sizing: border-box;
+      min-height: 260px;
+    }
+    .candidate-list {
+      margin-top: 18px;
+      font-size: 22px;
+      line-height: 1.6;
+      opacity: 0.88;
     }
     .status-bar {
       position: fixed;
@@ -93,20 +131,39 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
+    @media (max-width: 900px) {
+      main {
+        padding: 24px;
+      }
+      .card {
+        padding: 28px;
+      }
+      .big {
+        font-size: 56px;
+      }
+      .sub {
+        font-size: 24px;
+      }
+    }
   </style>
 </head>
 <body>
-<header>鳥の声AI判定 / BirdNET</header>
+<header>
+  <div class="title">鳥の声AI判定 / BirdNET</div>
+</header>
 
 <main>
   <div class="card">
-    <button id="birdnet_start_btn" class="active" onclick="startBirdnet()">開始</button>
-    <button id="birdnet_stop_btn" class="inactive" onclick="stopBirdnet()">停止</button>
+    <div class="button-row">
+      <button id="birdnet_start_btn" class="active" onclick="startBirdnet()">開始</button>
+      <button id="birdnet_stop_btn" class="inactive" onclick="stopBirdnet()">停止</button>
+    </div>
 
-    <div class="sub">CH1 / UMG15B 音量</div>
+    <div class="meter-label">CH1 / UMG15B 音量</div>
     <div class="meter"><div id="bar1" class="bar"></div></div>
 
-    <div id="area">
+    <div id="area" class="result-panel">
       <div class="big">停止中</div>
       <div class="sub">開始を押してください</div>
     </div>
@@ -133,11 +190,13 @@ function setStartStopButtons(startId, stopId, isRunning) {
   if (isRunning) {
     startBtn.classList.remove("active");
     startBtn.classList.add("inactive");
+
     stopBtn.classList.remove("inactive");
     stopBtn.classList.add("active");
   } else {
     startBtn.classList.remove("inactive");
     startBtn.classList.add("active");
+
     stopBtn.classList.remove("active");
     stopBtn.classList.add("inactive");
   }
@@ -145,54 +204,68 @@ function setStartStopButtons(startId, stopId, isRunning) {
 
 async function startBirdnet() {
   await fetch("/api/birdnet/start", {method: "POST"});
+  await refreshState();
 }
 
 async function stopBirdnet() {
   await fetch("/api/birdnet/stop", {method: "POST"});
+  await refreshState();
 }
 
-async function refreshState() {
-  const r = await fetch("/api/state");
-  const s = await r.json();
-
-  document.getElementById("bar1").style.width = pct(s.audio.level_ch1) + "%";
-
-  setStartStopButtons("birdnet_start_btn", "birdnet_stop_btn", s.birdnet.running);
-
-  document.getElementById("status").textContent =
-    `Status: ${s.birdnet.status} / running=${s.birdnet.running} | ` +
-    `capture: ${s.birdnet.capture_status || ""} | ` +
-    `analyze: ${s.birdnet.analyze_status || ""} | ` +
-    `elapsed: ${s.birdnet.last_elapsed_seconds ?? "-"} s`;
-
-  const b = s.birdnet;
-  const det = b.latest_detection;
-
-  if (!b.running && !det) {
-    document.getElementById("area").innerHTML = `
-      <div class="big">停止中</div>
-      <div class="sub">開始を押してください</div>
-    `;
-    return;
-  }
-
+function renderStopped(det) {
   if (det && det.top && det.top.length > 0) {
     const top = det.top[0];
     const name = birdName(top);
     const conf = Math.round(top.confidence * 100);
 
+    document.getElementById("area").innerHTML = `
+      <div class="sub">停止中 / 最後の判定結果</div>
+      <div class="big">${name}</div>
+      <div class="sub">AIの自信度：${conf}%</div>
+      <div class="small">${top.scientific_name || ""} / ${top.common_name || ""}</div>
+    `;
+    return;
+  }
+
+  document.getElementById("area").innerHTML = `
+    <div class="big">停止中</div>
+    <div class="sub">開始を押してください</div>
+  `;
+}
+
+function renderDetecting() {
+  document.getElementById("area").innerHTML = `
+    <div class="big">判定中</div>
+    <div class="sub">鳥の声を待っています</div>
+  `;
+}
+
+function renderDetection(det) {
+  if (!det) {
+    renderDetecting();
+    return;
+  }
+
+  if (det.top && det.top.length > 0) {
+    const top = det.top[0];
+    const name = birdName(top);
+    const conf = Math.round(top.confidence * 100);
+
     let html = `
-      <div class="sub">${det.time}</div>
+      <div class="sub">${det.time || ""}</div>
       <div class="big">${name}</div>
       <div class="sub">AIの自信度：${conf}%</div>
       <div class="small">${top.scientific_name || ""} / ${top.common_name || ""}</div>
     `;
 
     if (det.top.length > 1) {
-      html += `<div class="small">ほかの候補：`;
+      html += `<div class="candidate-list">ほかの候補：`;
       for (let i = 1; i < det.top.length; i++) {
         const item = det.top[i];
-        html += `${birdName(item)} ${Math.round(item.confidence * 100)}% `;
+        html += `${birdName(item)} ${Math.round(item.confidence * 100)}%`;
+        if (i < det.top.length - 1) {
+          html += ` / `;
+        }
       }
       html += `</div>`;
     }
@@ -201,18 +274,54 @@ async function refreshState() {
     return;
   }
 
-  if (det) {
+  if (det.message) {
     document.getElementById("area").innerHTML = `
-      <div class="sub">${det.time}</div>
+      <div class="sub">${det.time || ""}</div>
       <div class="big">${det.message}</div>
     `;
     return;
   }
 
-  if (b.running) {
+  renderDetecting();
+}
+
+async function refreshState() {
+  try {
+    const r = await fetch("/api/state");
+    const s = await r.json();
+
+    document.getElementById("bar1").style.width = pct(s.audio.level_ch1) + "%";
+
+    setStartStopButtons(
+      "birdnet_start_btn",
+      "birdnet_stop_btn",
+      Boolean(s.birdnet.running)
+    );
+
+    document.getElementById("status").textContent =
+      `Status: ${s.birdnet.status} / running=${s.birdnet.running} | ` +
+      `capture=${s.birdnet.capture_status || ""} | ` +
+      `analyze=${s.birdnet.analyze_status || ""} | ` +
+      `elapsed=${s.birdnet.last_elapsed_seconds ?? "-"} s | ` +
+      `audio=${s.audio.status} | CH1=${Number(s.audio.level_ch1 || 0).toFixed(5)}`;
+
+    const b = s.birdnet;
+    const det = b.latest_detection;
+
+    if (!b.running) {
+      renderStopped(det);
+      return;
+    }
+
+    renderDetection(det);
+
+  } catch (e) {
+    document.getElementById("status").textContent =
+      `Status error: ${e.message}`;
+
     document.getElementById("area").innerHTML = `
-      <div class="big">判定中</div>
-      <div class="sub">音を待っています</div>
+      <div class="big">エラー</div>
+      <div class="sub">${e.message}</div>
     `;
   }
 }

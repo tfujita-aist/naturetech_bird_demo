@@ -18,6 +18,7 @@
     .title {
       font-size: 34px;
       font-weight: bold;
+      line-height: 1.25;
     }
     main {
       padding: 36px;
@@ -59,13 +60,19 @@
       box-shadow: 0 0 0 4px rgba(255, 209, 102, 0.25);
     }
 
+    .meter-label {
+      font-size: 28px;
+      opacity: 0.95;
+      font-weight: bold;
+      margin-top: 4px;
+    }
     .meter {
       width: 100%;
       height: 30px;
       background: #081022;
       border-radius: 999px;
       overflow: hidden;
-      margin: 24px 0;
+      margin: 14px 0 26px 0;
     }
     .bar {
       height: 100%;
@@ -154,6 +161,7 @@
     .small {
       font-size: 24px;
       opacity: 0.82;
+      line-height: 1.45;
     }
 
     .countdown-number {
@@ -281,6 +289,60 @@
       text-overflow: ellipsis;
     }
 
+    .audio-unlock-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 5000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(2, 6, 23, 0.92);
+      backdrop-filter: blur(4px);
+      padding: 32px;
+      box-sizing: border-box;
+    }
+    .audio-unlock-panel {
+      width: min(860px, 96vw);
+      background: #17233f;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 28px;
+      box-shadow: 0 18px 48px rgba(0,0,0,0.45);
+      padding: 42px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .audio-unlock-title {
+      font-size: 48px;
+      font-weight: 900;
+      line-height: 1.22;
+      margin-bottom: 18px;
+      color: #ffd166;
+    }
+    .audio-unlock-text {
+      font-size: 28px;
+      line-height: 1.45;
+      font-weight: bold;
+      opacity: 0.96;
+      margin-bottom: 28px;
+    }
+    .audio-unlock-button {
+      font-size: 34px;
+      padding: 22px 38px;
+      border-radius: 20px;
+      background: #ffd166;
+      color: #111827;
+      box-shadow: 0 0 0 5px rgba(255, 209, 102, 0.22);
+    }
+    .audio-unlock-note {
+      margin-top: 18px;
+      font-size: 20px;
+      line-height: 1.45;
+      opacity: 0.78;
+    }
+    .hidden {
+      display: none !important;
+    }
+
     @media (max-width: 1250px) {
       .result-top {
         grid-template-columns: 1fr;
@@ -292,21 +354,50 @@
         white-space: normal;
       }
     }
+
+    @media (max-width: 900px) {
+      main {
+        padding: 24px;
+      }
+      .card {
+        padding: 28px;
+      }
+      .big {
+        font-size: 56px;
+      }
+      .sub {
+        font-size: 30px;
+      }
+    }
   </style>
 </head>
 <body>
+<div id="audio_unlock_overlay" class="audio-unlock-overlay">
+  <div class="audio-unlock-panel">
+    <div class="audio-unlock-title">音声を有効化してください</div>
+    <div class="audio-unlock-text">
+      外部デバイス操作でお手本の鳴き声を再生するため、<br>
+      モニター側で最初に一度だけ押してください。
+    </div>
+    <button class="audio-unlock-button" onclick="unlockAudio()">音声を有効化</button>
+    <div class="audio-unlock-note">
+      起動後に一度押せば、その後は操作パネルから鳥を選んでも音声を再生できます。
+    </div>
+  </div>
+</div>
+
 <header>
   <div class="title">鳥の鳴きまねチャレンジ</div>
 </header>
 
 <main>
   <div class="card">
-    <div class="sub">CH2 / UM230C 音量</div>
+    <div class="meter-label">CH2 / UM230C 音量</div>
     <div class="meter"><div id="bar2" class="bar"></div></div>
 
     <div>
       {% for key, sp in config.mimic.species.items() %}
-        <button id="species_btn_{{ key }}" class="species_btn active" onclick="startMimic('{{ key }}')">
+        <button id="species_btn_{{ key }}" class="species_btn active" onclick="sendMimicCommand('{{ key }}')">
           {{ sp.japanese_name }}
         </button>
       {% endfor %}
@@ -343,12 +434,17 @@
 <div id="status" class="status-bar">Status: loading...</div>
 
 <script>
+const PAGE_CLIENT_ID = "mimic-" + Math.random().toString(36).slice(2);
 const MIMIC_CONFIG = {{ config.mimic | tojson }};
 const MIMIC_SPECIES = {{ config.mimic.species | tojson }};
 
-let selectedSpeciesKey = null;
+const AUDIO_UNLOCK_STORAGE_KEY = "naturetech_audio_unlocked";
+
+let audioUnlocked = localStorage.getItem(AUDIO_UNLOCK_STORAGE_KEY) === "true";
 let mimicBusy = false;
 let sequentialReferenceIndexes = {};
+let handledCommandId = "";
+let latestScoreKey = "";
 
 let audioContext = null;
 let audioBufferCache = new Map();
@@ -387,6 +483,102 @@ function getAudioContext() {
   return audioContext;
 }
 
+function updateAudioUnlockOverlay() {
+  const overlay = document.getElementById("audio_unlock_overlay");
+  if (!overlay) return;
+
+  if (audioUnlocked) {
+    overlay.classList.add("hidden");
+  } else {
+    overlay.classList.remove("hidden");
+  }
+}
+
+async function unlockAudio() {
+  try {
+    const ctx = getAudioContext();
+
+    if (ctx.state === "suspended") {
+      await ctx.resume();
+    }
+
+    const silentAudio = new Audio(
+      "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQQAAAAAAA=="
+    );
+    silentAudio.volume = 0.0;
+    silentAudio.muted = true;
+
+    try {
+      await silentAudio.play();
+    } catch (e) {
+      // Web Audio の resume が成功していれば、この無音再生が失敗しても続行する。
+    }
+
+    audioUnlocked = true;
+    localStorage.setItem(AUDIO_UNLOCK_STORAGE_KEY, "true");
+    updateAudioUnlockOverlay();
+
+    drawWaveform({
+      referenceBuffer: lastReferenceBuffer,
+      userBuffer: lastUserBuffer,
+      referenceProgress: 1,
+      userProgress: 1,
+      message: "音声を有効化しました"
+    });
+
+  } catch (e) {
+    audioUnlocked = false;
+    localStorage.removeItem(AUDIO_UNLOCK_STORAGE_KEY);
+    updateAudioUnlockOverlay();
+
+    document.getElementById("area").innerHTML = `
+      <div class="state-message">
+        <div class="big">音声を有効化できませんでした</div>
+        <div class="sub">もう一度「音声を有効化」を押してください</div>
+      </div>
+    `;
+  }
+}
+
+async function ensureAudioUnlocked() {
+  const ctx = getAudioContext();
+
+  if (audioUnlocked && ctx.state === "suspended") {
+    try {
+      await ctx.resume();
+    } catch (e) {
+      audioUnlocked = false;
+      localStorage.removeItem(AUDIO_UNLOCK_STORAGE_KEY);
+      updateAudioUnlockOverlay();
+    }
+  }
+
+  return audioUnlocked && ctx.state !== "suspended";
+}
+
+function showAudioUnlockRequired(speciesKey) {
+  const sp = MIMIC_SPECIES[speciesKey];
+
+  audioUnlocked = false;
+  localStorage.removeItem(AUDIO_UNLOCK_STORAGE_KEY);
+  updateAudioUnlockOverlay();
+
+  document.getElementById("area").innerHTML = `
+    <div class="state-message">
+      <div class="big">${sp ? sp.japanese_name : "音声の準備が必要です"}</div>
+      <div class="sub">モニター側で「音声を有効化」を押してください</div>
+    </div>
+  `;
+
+  drawWaveform({
+    referenceBuffer: lastReferenceBuffer,
+    userBuffer: lastUserBuffer,
+    referenceProgress: 1,
+    userProgress: 1,
+    message: "音声を有効化してください"
+  });
+}
+
 async function loadAudioBuffer(url) {
   if (!url) return null;
 
@@ -395,6 +587,11 @@ async function loadAudioBuffer(url) {
   }
 
   const ctx = getAudioContext();
+
+  if (ctx.state === "suspended") {
+    await ctx.resume();
+  }
+
   const resp = await fetch(url);
   const arr = await resp.arrayBuffer();
   const buf = await ctx.decodeAudioData(arr);
@@ -715,12 +912,12 @@ function drawSingleWaveform(ctx, data, plotLeft, plotRight, plotTop, plotBottom,
 }
 
 function setSelectedSpecies(speciesKey) {
-  selectedSpeciesKey = speciesKey;
-
   document.querySelectorAll(".species_btn").forEach(btn => {
     btn.classList.remove("selected");
     btn.classList.add("active");
   });
+
+  if (!speciesKey) return;
 
   const btn = document.getElementById(`species_btn_${speciesKey}`);
   if (btn) {
@@ -839,9 +1036,51 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function renderInitialScreen() {
+  stopLiveMicWaveform();
+
+  lastReferenceBuffer = null;
+  lastUserBuffer = null;
+  latestScoreKey = "";
+  handledCommandId = "";
+  displayWaveSeconds = getScoreSeconds();
+
+  setSelectedSpecies(null);
+  setSpeciesButtonsDisabled(false);
+
+  document.getElementById("area").innerHTML = `
+    <div class="state-message">
+      <div class="big">鳥を選んで、鳴き声をまねしてみよう！</div>
+      <div class="sub">お手本を聞いてから3秒間チャレンジします</div>
+    </div>
+  `;
+
+  drawWaveform({
+    message: "鳥を選ぶと、お手本とあなたの声の波形がここに出ます"
+  });
+}
+
+async function sendMimicCommand(speciesKey) {
+  setSelectedSpecies(speciesKey);
+
+  if (mimicBusy) {
+    return;
+  }
+
+  await fetch(`/api/control/mimic/${speciesKey}?source=mimic`, {
+    method: "POST",
+  });
+}
+
 async function playAudioWithWaveform(url) {
   return new Promise(async (resolve, reject) => {
     try {
+      const ok = await ensureAudioUnlocked();
+      if (!ok) {
+        reject(new Error("音声が有効化されていません"));
+        return;
+      }
+
       displayWaveSeconds = getScoreSeconds();
       lastReferenceBuffer = await loadAudioBuffer(url);
       lastUserBuffer = null;
@@ -853,6 +1092,7 @@ async function playAudioWithWaveform(url) {
       });
 
       const audio = new Audio(url);
+      audio.preload = "auto";
 
       audio.onended = () => {
         drawWaveform({
@@ -883,7 +1123,12 @@ async function playAudioWithWaveform(url) {
       const p = audio.play();
 
       if (p && p.catch) {
-        p.catch(reject);
+        p.catch((e) => {
+          audioUnlocked = false;
+          localStorage.removeItem(AUDIO_UNLOCK_STORAGE_KEY);
+          updateAudioUnlockOverlay();
+          reject(e);
+        });
       }
 
       requestAnimationFrame(animate);
@@ -1049,6 +1294,8 @@ async function drawResultWaveform(m) {
 }
 
 function renderMimicResult(m) {
+  if (!m) return;
+
   const alignmentText = Number.isFinite(Number(m.alignment_offset_seconds))
     ? `${Number(m.alignment_offset_seconds).toFixed(3)}秒`
     : "-";
@@ -1129,7 +1376,7 @@ function renderMimicResult(m) {
   drawResultWaveform(m);
 }
 
-async function startMimic(speciesKey) {
+async function executeMimic(speciesKey) {
   const stateResp = await fetch("/api/state");
   const state = await stateResp.json();
 
@@ -1143,11 +1390,16 @@ async function startMimic(speciesKey) {
     return;
   }
 
+  const ok = await ensureAudioUnlocked();
+  if (!ok) {
+    showAudioUnlockRequired(speciesKey);
+    return;
+  }
+
   mimicBusy = true;
   setSpeciesButtonsDisabled(true);
   setSelectedSpecies(speciesKey);
 
-  const sp = MIMIC_SPECIES[speciesKey];
   const ref = chooseReference(speciesKey);
   const url = referenceUrl(ref.path);
   const scoreSeconds = getScoreSeconds();
@@ -1208,27 +1460,136 @@ async function startMimic(speciesKey) {
   } catch (e) {
     stopLiveMicWaveform();
 
-    document.getElementById("area").innerHTML = `
-      <div class="state-message">
-        <div class="big">エラー</div>
-        <div class="sub">${e.message}</div>
-      </div>
-    `;
+    const message = e && e.message ? e.message : String(e);
+
+    if (
+      message.includes("play() failed") ||
+      message.includes("user didn't interact") ||
+      message.includes("NotAllowedError") ||
+      message.includes("音声が有効化されていません")
+    ) {
+      showAudioUnlockRequired(speciesKey);
+    } else {
+      document.getElementById("area").innerHTML = `
+        <div class="state-message">
+          <div class="big">エラー</div>
+          <div class="sub">${message}</div>
+        </div>
+      `;
+    }
   } finally {
     mimicBusy = false;
     setSpeciesButtonsDisabled(false);
   }
 }
 
+async function handleControlCommand(s) {
+  if (!s.control || !s.control.mimic_command) {
+    return;
+  }
+
+  const command = s.control.mimic_command;
+
+  if (!command.id || !command.species_key) {
+    return;
+  }
+
+  const commandId = String(command.id);
+
+  if (commandId === handledCommandId) {
+    return;
+  }
+
+  const now = Date.now();
+  const createdAt = Number(command.created_at_ms || command.id || 0);
+  const ageMs = now - createdAt;
+
+  if (!Number.isFinite(ageMs) || ageMs < 0 || ageMs > 30000) {
+    return;
+  }
+
+  handledCommandId = commandId;
+  setSelectedSpecies(command.species_key);
+
+  if (mimicBusy || s.mimic.running) {
+    return;
+  }
+
+  await executeMimic(command.species_key);
+}
+
+function syncLatestMimicScore(s) {
+  if (!s.mimic || !s.mimic.latest_score) return;
+  if (mimicBusy) return;
+
+  const m = s.mimic.latest_score;
+  const key = `${m.datetime || ""}_${m.species_key || ""}_${m.display_total || ""}_${m.valid}`;
+
+  if (key && key !== latestScoreKey) {
+    latestScoreKey = key;
+    renderMimicResult(m);
+  }
+}
+
+function syncResetState(s) {
+  if (mimicBusy) return;
+
+  const command = s.control ? s.control.mimic_command : null;
+
+  const activeSpecies =
+    (s.control && s.control.active_species_key) ||
+    (s.mimic && s.mimic.active_species_key) ||
+    null;
+
+  const latestScore = s.mimic ? s.mimic.latest_score : null;
+  const status = s.mimic ? s.mimic.status : "";
+
+  const isInitialState =
+    !command &&
+    !activeSpecies &&
+    !latestScore &&
+    (status === "ready" || status === "stopped");
+
+  const hasDisplayedRuntimeState =
+    latestScoreKey ||
+    handledCommandId ||
+    lastReferenceBuffer ||
+    lastUserBuffer;
+
+  if (isInitialState && hasDisplayedRuntimeState) {
+    renderInitialScreen();
+  }
+}
+
 async function refreshState() {
-  const r = await fetch("/api/state");
-  const s = await r.json();
+  try {
+    const r = await fetch("/api/state");
+    const s = await r.json();
 
-  document.getElementById("bar2").style.width = pct(s.audio.level_ch2) + "%";
+    document.getElementById("bar2").style.width = pct(s.audio.level_ch2) + "%";
 
-  document.getElementById("status").textContent =
-    `Status: ${s.mimic.status} / running=${s.mimic.running} | ` +
-    `audio CH2 level=${Number(s.audio.level_ch2 || 0).toFixed(5)}`;
+    const activeSpecies =
+      (s.control && s.control.active_species_key) ||
+      (s.mimic && s.mimic.active_species_key) ||
+      null;
+
+    setSelectedSpecies(activeSpecies);
+    setSpeciesButtonsDisabled(Boolean(s.mimic.running || mimicBusy));
+
+    document.getElementById("status").textContent =
+      `Status: ${s.mimic.status} / running=${s.mimic.running} | ` +
+      `species=${activeSpecies || "-"} | ` +
+      `audio=${audioUnlocked ? "unlocked" : "locked"} | ` +
+      `CH2=${Number(s.audio.level_ch2 || 0).toFixed(5)}`;
+
+    await handleControlCommand(s);
+    syncLatestMimicScore(s);
+    syncResetState(s);
+
+  } catch (e) {
+    document.getElementById("status").textContent =
+      `Status error: ${e.message}`;
+  }
 }
 
 window.addEventListener("resize", () => {
@@ -1240,6 +1601,8 @@ window.addEventListener("resize", () => {
     message: lastReferenceBuffer ? "" : "鳥を選ぶと、お手本とあなたの声の波形がここに出ます",
   });
 });
+
+updateAudioUnlockOverlay();
 
 drawWaveform({
   message: "鳥を選ぶと、お手本とあなたの声の波形がここに出ます"

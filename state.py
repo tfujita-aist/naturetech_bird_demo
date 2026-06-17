@@ -34,7 +34,12 @@ STATE = {
         "enabled": False,
         "running": False,
         "status": "ready",
+        "active_species_key": None,
         "latest_score": None,
+    },
+    "control": {
+        "mimic_command": None,
+        "active_species_key": None,
     },
 }
 

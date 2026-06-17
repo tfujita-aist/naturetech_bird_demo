@@ -9,568 +9,329 @@
       margin: 0;
       background: #0b1020;
       color: white;
+      padding-bottom: 54px;
     }
     header {
-      padding: 24px 36px 16px 36px;
+      padding: 28px 36px 20px 36px;
       background: #12203a;
     }
     .title {
-      font-size: 30px;
+      font-size: 34px;
       font-weight: bold;
-      margin-bottom: 16px;
-    }
-    nav {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    nav a {
-      display: inline-block;
-      text-decoration: none;
-      color: white;
-      background: #2d3d66;
-      padding: 12px 18px;
-      border-radius: 12px;
-      font-size: 18px;
-      font-weight: bold;
-    }
-    nav a.current {
-      background: #4f8cff;
-      box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.25);
-    }
-    nav a:hover {
-      background: #4f8cff;
+      line-height: 1.25;
     }
     main {
+      padding: 28px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
       gap: 24px;
-      padding: 24px;
+      align-items: stretch;
     }
     .card {
       background: #17233f;
-      border-radius: 20px;
-      padding: 28px;
+      border-radius: 24px;
+      padding: 30px;
       box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      box-sizing: border-box;
     }
-    h2 {
-      margin-top: 0;
-      font-size: 28px;
-    }
-    .big {
-      font-size: 46px;
+    .section-title {
+      font-size: 30px;
       font-weight: bold;
-      margin: 16px 0;
+      margin-bottom: 18px;
+      color: #ffd166;
     }
-    .sub {
-      font-size: 22px;
-      opacity: 0.9;
+    .launcher-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
     }
-    .small {
-      font-size: 18px;
-      opacity: 0.75;
-    }
-    button {
-      font-size: 22px;
-      border: 0;
-      border-radius: 14px;
-      padding: 16px 20px;
-      margin: 8px;
-      cursor: pointer;
+    .launcher-button {
+      display: block;
+      text-decoration: none;
       color: white;
+      background: #4f8cff;
+      border-radius: 22px;
+      padding: 28px 30px;
+      font-size: 30px;
       font-weight: bold;
-      background: #2d3d66;
+      line-height: 1.3;
+      box-shadow: 0 0 0 4px rgba(79, 140, 255, 0.22);
       transition: transform 0.08s, background 0.15s, opacity 0.15s;
+      border: 0;
+      text-align: left;
+      cursor: pointer;
+      font-family: inherit;
+      width: 100%;
+      box-sizing: border-box;
     }
-    button:hover {
+    .launcher-button:hover {
       transform: translateY(-1px);
+      background: #6ea2ff;
     }
-    button:disabled {
-      opacity: 0.45;
+    .launcher-button:disabled {
+      opacity: 0.5;
       cursor: not-allowed;
       transform: none;
     }
-    button.active {
-      background: #4f8cff;
-      box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.25);
+    .launcher-sub {
+      display: block;
+      font-size: 18px;
+      font-weight: normal;
+      opacity: 0.86;
+      margin-top: 6px;
     }
-    button.inactive {
-      background: #2d3d66;
-    }
-    button.selected {
-      background: #ffd166;
-      color: #111827;
-      box-shadow: 0 0 0 4px rgba(255, 209, 102, 0.25);
-    }
-    .meter {
-      width: 100%;
-      height: 24px;
-      background: #081022;
-      border-radius: 999px;
-      overflow: hidden;
-      margin: 12px 0;
-    }
-    .bar {
-      height: 100%;
-      width: 0%;
-      background: #70d87b;
-    }
-    .score {
-      font-size: 72px;
-      font-weight: bold;
-      color: #ffd166;
-    }
-    .title-badge {
-      display: inline-block;
-      font-size: 28px;
-      font-weight: bold;
-      background: #ffd166;
-      color: #111827;
-      border-radius: 16px;
-      padding: 10px 16px;
-      margin: 10px 0;
-    }
-    .score-grid {
+    .reset-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 12px;
+      gap: 14px;
+      margin-top: 28px;
     }
-    .score-item {
-      background: rgba(0,0,0,0.18);
-      border-radius: 12px;
-      padding: 10px;
-      font-size: 17px;
+    .reset-button {
+      border: 0;
+      border-radius: 18px;
+      padding: 20px 18px;
+      font-size: 22px;
+      font-weight: bold;
+      color: white;
+      background: #2d3d66;
+      cursor: pointer;
+      font-family: inherit;
+      transition: transform 0.08s, background 0.15s, opacity 0.15s;
     }
-    .spectrogram {
-      width: 100%;
-      margin-top: 16px;
+    .reset-button:hover {
+      transform: translateY(-1px);
+      background: #4f8cff;
+    }
+    .reset-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .qr-panel {
+      text-align: center;
+    }
+    .qr-title {
+      font-size: 26px;
+      font-weight: bold;
+      margin-bottom: 14px;
+      color: #ffd166;
+    }
+    .qr-panel img {
+      display: block;
+      width: 220px;
+      height: 220px;
+      margin: 0 auto 14px auto;
+      background: white;
       border-radius: 14px;
-      background: #081022;
+      padding: 10px;
+      box-sizing: border-box;
     }
-    .status {
-      font-size: 18px;
-      opacity: 0.85;
-      margin-top: 10px;
-      line-height: 1.5;
-      background: rgba(0,0,0,0.18);
-      border-radius: 12px;
-      padding: 10px 12px;
+    .qr-url {
+      font-size: 14px;
+      line-height: 1.35;
+      opacity: 0.86;
       word-break: break-all;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .status-box {
+      margin-top: 22px;
+      background: rgba(0,0,0,0.18);
+      border-radius: 16px;
+      padding: 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 16px;
+      line-height: 1.65;
+      color: rgba(226, 232, 240, 0.9);
+      word-break: break-all;
+      text-align: left;
+    }
+    .status-message {
+      margin-top: 18px;
+      font-size: 18px;
+      line-height: 1.45;
+      color: rgba(226, 232, 240, 0.9);
+      min-height: 26px;
+    }
+    .status-bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1000;
+      background: rgba(8, 16, 34, 0.96);
+      border-top: 1px solid rgba(148, 163, 184, 0.25);
+      color: rgba(226, 232, 240, 0.86);
+      font-size: 15px;
+      line-height: 1.45;
+      padding: 8px 16px;
+      box-sizing: border-box;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @media (max-width: 960px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+      .launcher-button {
+        font-size: 26px;
+      }
+      .reset-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
 <header>
   <div class="title">{{ config.ui.title }}</div>
-  <nav>
-    <a class="current" href="/index.html">統合画面</a>
-    <a href="/birdnet">鳥の声AI判定のみ</a>
-    <a href="/mimic">鳴きまねチャレンジのみ</a>
-  </nav>
 </header>
 
 <main>
   <section class="card">
-    <h2>鳥の声AI判定</h2>
+    <div class="section-title">画面を開く</div>
 
-    <div>
-      <button id="birdnet_start_btn" class="active" onclick="startBirdnet()">BirdNET開始</button>
-      <button id="birdnet_stop_btn" class="inactive" onclick="stopBirdnet()">BirdNET停止</button>
+    <div class="launcher-grid">
+      <a class="launcher-button" href="/birdnet">
+        鳥の声AI判定を開く
+        <span class="launcher-sub">BirdNET による鳥の声のリアルタイム判定</span>
+      </a>
+
+      <a class="launcher-button" href="/mimic">
+        鳥の鳴きまねチャレンジを開く
+        <span class="launcher-sub">お手本を聞いて、鳴きまねを採点</span>
+      </a>
+
+      <a class="launcher-button" href="/control">
+        操作パネルを開く
+        <span class="launcher-sub">スマートフォン、タブレット、別PCなどから操作</span>
+      </a>
     </div>
 
-    <div class="sub">CH1 / UMG15B 音量</div>
-    <div class="meter"><div id="bar1" class="bar"></div></div>
+    <div class="section-title" style="margin-top:34px;">リセット</div>
 
-    <div id="birdnet_area">
-      <div class="big">待機中</div>
-      <div class="sub">BirdNET開始を押してください</div>
+    <div class="reset-grid">
+      <button id="birdnet_reset_btn" class="reset-button" onclick="resetBirdnet()">
+        鳥の声AI判定をリセットする
+      </button>
+
+      <button id="mimic_reset_btn" class="reset-button" onclick="resetMimic()">
+        鳥の鳴きまねチャレンジをリセットする
+      </button>
     </div>
 
-    <div id="birdnet_status" class="status"></div>
+    <div id="reset_message" class="status-message"></div>
   </section>
 
-  <section class="card">
-    <h2>鳥の鳴きまねチャレンジ</h2>
+  <section class="card qr-panel">
+    <div class="qr-title">操作パネル</div>
+    <img src="{{ control_qr_url }}?t={{ control_url }}" alt="操作パネルQRコード">
+    <div class="qr-url">{{ control_url }}</div>
 
-    <div class="sub">CH2 / UM230C 音量</div>
-    <div class="meter"><div id="bar2" class="bar"></div></div>
-
-    <div>
-      {% for key, sp in config.mimic.species.items() %}
-        <button id="species_btn_{{ key }}" class="species_btn active" onclick="startMimic('{{ key }}')">
-          {{ sp.japanese_name }}
-        </button>
-      {% endfor %}
+    <div id="status_box" class="status-box">
+      Status: loading...
     </div>
-
-    <div id="mimic_area">
-      <div class="big">鳥を選んで、鳴き声をまねしてみよう！</div>
-      <div class="sub">お手本を聞いてから3秒間チャレンジします</div>
-    </div>
-
-    <div id="mimic_status" class="status"></div>
   </section>
 </main>
 
+<div id="status_bar" class="status-bar">Status: loading...</div>
+
 <script>
-const MIMIC_CONFIG = {{ config.mimic | tojson }};
-const MIMIC_SPECIES = {{ config.mimic.species | tojson }};
-
-let selectedSpeciesKey = null;
-let mimicBusy = false;
-let sequentialReferenceIndexes = {};
-
-function pct(x) {
-  return Math.min(100, Math.max(0, x * 1000));
+function formatBool(value) {
+  return value ? "true" : "false";
 }
 
-function birdName(item) {
-  return item.display_name || item.japanese_name || item.common_name || item.scientific_name || "";
+function setResetMessage(message) {
+  document.getElementById("reset_message").textContent = message;
 }
 
-function setStartStopButtons(startId, stopId, isRunning) {
-  const startBtn = document.getElementById(startId);
-  const stopBtn = document.getElementById(stopId);
-
-  if (!startBtn || !stopBtn) return;
-
-  if (isRunning) {
-    startBtn.classList.remove("active");
-    startBtn.classList.add("inactive");
-    stopBtn.classList.remove("inactive");
-    stopBtn.classList.add("active");
-  } else {
-    startBtn.classList.remove("inactive");
-    startBtn.classList.add("active");
-    stopBtn.classList.remove("active");
-    stopBtn.classList.add("inactive");
-  }
-}
-
-function setSelectedSpecies(speciesKey) {
-  selectedSpeciesKey = speciesKey;
-
-  document.querySelectorAll(".species_btn").forEach(btn => {
-    btn.classList.remove("selected");
-    btn.classList.add("active");
-  });
-
-  const btn = document.getElementById(`species_btn_${speciesKey}`);
-  if (btn) {
-    btn.classList.add("selected");
-    btn.classList.remove("active");
-  }
-}
-
-function setSpeciesButtonsDisabled(disabled) {
-  document.querySelectorAll(".species_btn").forEach(btn => {
-    btn.disabled = disabled;
-  });
-}
-
-function getReferenceWavs(speciesKey) {
-  const sp = MIMIC_SPECIES[speciesKey];
-  if (!sp) return [];
-
-  if (Array.isArray(sp.reference_wavs) && sp.reference_wavs.length > 0) {
-    return sp.reference_wavs;
-  }
-
-  if (sp.reference_audio) {
-    return [sp.reference_audio];
-  }
-
-  if (sp.reference_wav) {
-    return [sp.reference_wav];
-  }
-
-  return [];
-}
-
-function getReferenceSelectionMode(speciesKey) {
-  const sp = MIMIC_SPECIES[speciesKey];
-
-  if (sp && sp.reference_selection_mode) {
-    return sp.reference_selection_mode;
-  }
-
-  return MIMIC_CONFIG.reference_selection_mode || "fixed";
-}
-
-function getFixedReferenceIndex(speciesKey, wavCount) {
-  const sp = MIMIC_SPECIES[speciesKey];
-
-  let idx = MIMIC_CONFIG.fixed_reference_index ?? 0;
-
-  if (sp && sp.fixed_reference_index !== undefined) {
-    idx = sp.fixed_reference_index;
-  }
-
-  idx = Number(idx);
-
-  if (!Number.isFinite(idx)) {
-    idx = 0;
-  }
-
-  if (idx < 0) {
-    idx = 0;
-  }
-
-  if (idx >= wavCount) {
-    idx = wavCount - 1;
-  }
-
-  return idx;
-}
-
-function chooseReference(speciesKey) {
-  const wavs = getReferenceWavs(speciesKey);
-
-  if (wavs.length === 0) {
-    return {
-      index: 0,
-      path: null,
-      mode: "none",
-      count: 0,
-    };
-  }
-
-  const mode = getReferenceSelectionMode(speciesKey);
-  let index = 0;
-
-  if (mode === "random") {
-    index = Math.floor(Math.random() * wavs.length);
-
-  } else if (mode === "sequential") {
-    const current = sequentialReferenceIndexes[speciesKey] ?? 0;
-    index = current % wavs.length;
-    sequentialReferenceIndexes[speciesKey] = (index + 1) % wavs.length;
-
-  } else {
-    index = getFixedReferenceIndex(speciesKey, wavs.length);
-  }
-
-  return {
-    index: index,
-    path: wavs[index],
-    mode: mode,
-    count: wavs.length,
-  };
-}
-
-function referenceUrl(path) {
-  if (!path) return null;
-  return "/" + path.replace(/^\/+/, "");
-}
-
-function basename(path) {
-  if (!path) return "";
-  return path.split("/").pop();
-}
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function playAudio(url) {
-  return new Promise((resolve, reject) => {
-    const audio = new Audio(url);
-
-    audio.onended = () => resolve();
-    audio.onerror = () => reject(new Error("参考音声を再生できませんでした: " + url));
-
-    const p = audio.play();
-    if (p && p.catch) {
-      p.catch(reject);
-    }
-  });
-}
-
-async function countdown(seconds) {
-  for (let i = seconds; i >= 1; i--) {
-    document.getElementById("mimic_area").innerHTML = `
-      <div class="big">${i}</div>
-      <div class="sub">もうすぐ録音開始</div>
-    `;
-    await sleep(1000);
-  }
-}
-
-async function startBirdnet() {
-  await fetch("/api/birdnet/start", {method: "POST"});
-}
-
-async function stopBirdnet() {
-  await fetch("/api/birdnet/stop", {method: "POST"});
-}
-
-function renderMimicResult(m) {
-  if (m.valid === false || m.valid === "False") {
-    document.getElementById("mimic_area").innerHTML = `
-      <div class="sub">${m.japanese_name}</div>
-      <div class="big">もう一度！</div>
-      <div class="sub">${m.comment}</div>
-      <div class="small">お手本: ${basename(m.reference_audio)}</div>
-      <div class="small">
-        peak ${m.user_peak} / rms ${m.user_rms} / voiced ${m.user_voiced_ratio}
-      </div>
-    `;
-    return;
-  }
-
-  let imageHtml = "";
-  if (m.spectrogram_url) {
-    imageHtml = `
-      <div class="sub" style="margin-top:16px;">声のもよう</div>
-      <img class="spectrogram" src="${m.spectrogram_url}?t=${Date.now()}" alt="声のもよう">
-    `;
-  }
-
-  document.getElementById("mimic_area").innerHTML = `
-    <div class="sub">${m.japanese_name}</div>
-    <div class="score">${m.display_total ?? m.total}点</div>
-    <div class="title-badge">${m.title || ""}</div>
-    <div class="sub">${m.comment}</div>
-    <div class="small">お手本: ${basename(m.reference_audio)}</div>
-
-    <div class="score-grid">
-      <div class="score-item">リズムぴったり度<br>${m.rhythm}</div>
-      <div class="score-item">声の高さ<br>${m.pitch}</div>
-      <div class="score-item">鳥っぽさ<br>${m.shape}</div>
-      <div class="score-item">元気ポイント<br>${m.energy}</div>
-    </div>
-
-    <div class="small" style="margin-top:10px;">
-      ガチ判定 ${m.strict_total} / ゲーム判定 ${m.game_total}
-    </div>
-
-    ${imageHtml}
-  `;
-}
-
-async function startMimic(speciesKey) {
-  const stateResp = await fetch("/api/state");
-  const state = await stateResp.json();
-
-  if (state.mimic.running || mimicBusy) {
-    document.getElementById("mimic_area").innerHTML = `
-      <div class="big">処理中</div>
-      <div class="sub">少し待ってください</div>
-    `;
-    return;
-  }
-
-  mimicBusy = true;
-  setSpeciesButtonsDisabled(true);
-  setSelectedSpecies(speciesKey);
-
-  const sp = MIMIC_SPECIES[speciesKey];
-  const ref = chooseReference(speciesKey);
-  const url = referenceUrl(ref.path);
+async function resetBirdnet() {
+  const btn = document.getElementById("birdnet_reset_btn");
+  btn.disabled = true;
+  setResetMessage("鳥の声AI判定をリセットしています...");
 
   try {
-    document.getElementById("mimic_area").innerHTML = `
-      <div class="big">${sp.japanese_name}</div>
-      <div class="sub">まず、お手本の鳴き声を聞いてね</div>
-      <div class="small">お手本: ${basename(ref.path)} / ${ref.index + 1} of ${ref.count}</div>
-    `;
+    const r = await fetch("/api/birdnet/reset", {method: "POST"});
+    const data = await r.json();
 
-    if (url) {
-      await playAudio(url);
-    }
-
-    await countdown(3);
-
-    document.getElementById("mimic_area").innerHTML = `
-      <div class="big">まねしてね！</div>
-      <div class="sub">3秒間録音中...</div>
-    `;
-
-    const r = await fetch(
-      `/api/mimic/${speciesKey}?reference_index=${ref.index}`,
-      {method: "POST"}
-    );
-
-    const m = await r.json();
-
-    if (m.error) {
-      document.getElementById("mimic_area").innerHTML = `
-        <div class="big">エラー</div>
-        <div class="sub">${m.error}</div>
-      `;
+    if (!r.ok || data.error) {
+      setResetMessage(data.error || "鳥の声AI判定のリセットに失敗しました。");
       return;
     }
 
-    renderMimicResult(m);
+    setResetMessage("鳥の声AI判定をリセットしました。");
+    await refreshState();
 
   } catch (e) {
-    document.getElementById("mimic_area").innerHTML = `
-      <div class="big">エラー</div>
-      <div class="sub">${e.message}</div>
-    `;
+    setResetMessage(`鳥の声AI判定のリセットに失敗しました: ${e.message}`);
+
   } finally {
-    mimicBusy = false;
-    setSpeciesButtonsDisabled(false);
+    btn.disabled = false;
+  }
+}
+
+async function resetMimic() {
+  const btn = document.getElementById("mimic_reset_btn");
+  btn.disabled = true;
+  setResetMessage("鳥の鳴きまねチャレンジをリセットしています...");
+
+  try {
+    const r = await fetch("/api/mimic/reset", {method: "POST"});
+    const data = await r.json();
+
+    if (!r.ok || data.error) {
+      setResetMessage(data.error || "鳥の鳴きまねチャレンジのリセットに失敗しました。");
+      return;
+    }
+
+    setResetMessage("鳥の鳴きまねチャレンジをリセットしました。");
+    await refreshState();
+
+  } catch (e) {
+    setResetMessage(`鳥の鳴きまねチャレンジのリセットに失敗しました: ${e.message}`);
+
+  } finally {
+    btn.disabled = false;
   }
 }
 
 async function refreshState() {
-  const r = await fetch("/api/state");
-  const s = await r.json();
+  try {
+    const r = await fetch("/api/state");
+    const s = await r.json();
 
-  document.getElementById("bar1").style.width = pct(s.audio.level_ch1) + "%";
-  document.getElementById("bar2").style.width = pct(s.audio.level_ch2) + "%";
+    const activeSpecies =
+      (s.control && s.control.active_species_key) ||
+      (s.mimic && s.mimic.active_species_key) ||
+      "-";
 
-  setStartStopButtons("birdnet_start_btn", "birdnet_stop_btn", s.birdnet.running);
+    const command =
+      s.control && s.control.mimic_command
+        ? `${s.control.mimic_command.species_key} / id=${s.control.mimic_command.id}`
+        : "-";
 
-  document.getElementById("birdnet_status").innerHTML =
-    `BirdNET: ${s.birdnet.status} / running=${s.birdnet.running}<br>` +
-    `capture: ${s.birdnet.capture_status || ""}<br>` +
-    `analyze: ${s.birdnet.analyze_status || ""}<br>` +
-    `elapsed: ${s.birdnet.last_elapsed_seconds ?? "-"} s`;
+    document.getElementById("status_box").innerHTML =
+      `Audio: ${s.audio.status}<br>` +
+      `CH1: ${Number(s.audio.level_ch1 || 0).toFixed(5)} / ` +
+      `CH2: ${Number(s.audio.level_ch2 || 0).toFixed(5)}<br>` +
+      `BirdNET: ${s.birdnet.status} / running=${formatBool(s.birdnet.running)}<br>` +
+      `Mimic: ${s.mimic.status} / running=${formatBool(s.mimic.running)}<br>` +
+      `Species: ${activeSpecies}<br>` +
+      `Command: ${command}`;
 
-  document.getElementById("mimic_status").innerHTML =
-    `Mimic: ${s.mimic.status} / running=${s.mimic.running}`;
+    document.getElementById("status_bar").textContent =
+      `Status: Audio=${s.audio.status} | ` +
+      `BirdNET=${s.birdnet.status} running=${formatBool(s.birdnet.running)} | ` +
+      `Mimic=${s.mimic.status} running=${formatBool(s.mimic.running)} | ` +
+      `species=${activeSpecies}`;
 
-  const b = s.birdnet;
-  const det = b.latest_detection;
-
-  if (!b.running) {
-    if (!det) {
-      document.getElementById("birdnet_area").innerHTML = `
-        <div class="big">停止中</div>
-        <div class="sub">BirdNET開始を押してください</div>
-      `;
-    }
-  } else if (det && det.top && det.top.length > 0) {
-    const top = det.top[0];
-    const name = birdName(top);
-    const conf = Math.round(top.confidence * 100);
-
-    let html = `
-      <div class="sub">${det.time}</div>
-      <div class="big">${name}</div>
-      <div class="sub">AIの自信度：${conf}%</div>
-      <div class="small">${top.scientific_name || ""} / ${top.common_name || ""}</div>
-    `;
-
-    if (det.top.length > 1) {
-      html += `<div class="small">ほかの候補：`;
-      for (let i = 1; i < det.top.length; i++) {
-        const item = det.top[i];
-        html += `${birdName(item)} ${Math.round(item.confidence * 100)}% `;
-      }
-      html += `</div>`;
-    }
-
-    document.getElementById("birdnet_area").innerHTML = html;
-
-  } else if (det) {
-    document.getElementById("birdnet_area").innerHTML = `
-      <div class="sub">${det.time}</div>
-      <div class="big">${det.message}</div>
-    `;
+  } catch (e) {
+    document.getElementById("status_box").textContent =
+      `Status error: ${e.message}`;
+    document.getElementById("status_bar").textContent =
+      `Status error: ${e.message}`;
   }
 }
 

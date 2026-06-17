@@ -10,3 +10,4 @@ uvicorn
 jinja2
 pyyaml
 python-multipart
+qrcode

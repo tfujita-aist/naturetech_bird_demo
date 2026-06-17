@@ -31,6 +31,10 @@ birdnet:
   #   cli: python -m birdnet_analyzer.analyze を呼ぶ CLI バージョン (検証・デバッグ向け)
   inference_mode: "direct"
 
+  # BirdNET v2.4 音声判定モデル
+  # .venv 配下ではなく、プロジェクト配下に置くことで .venv を作り直しても消えないようにする
+  model_path: "models/BirdNET_V2.4/audio-model.tflite"
+
   # BirdNET v2.4 日本語ラベル
   labels_ja_path: ".venv/lib/python3.11/site-packages/birdnet_analyzer/labels/V2.4/BirdNET_GLOBAL_6K_V2.4_Labels_ja.txt"
 

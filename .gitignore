@@ -60,3 +60,5 @@ reference_sounds/*.txt
 
 test_out_lowconf/
 tools/*.wav
+
+models/

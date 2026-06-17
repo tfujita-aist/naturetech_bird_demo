@@ -69,6 +69,9 @@ class BirdNETService:
         self.location_filter: np.ndarray | None = None
         self.last_elapsed_seconds = 0.0
 
+        self.model_file: Path | None = None
+        self.labels_file: Path | None = None
+
         self.ja_name_map = self.load_birdnet_ja_labels()
 
         if self.inference_mode == "direct":
@@ -117,6 +120,176 @@ class BirdNETService:
                 writer.writeheader()
             writer.writerow(row)
 
+    def project_path(self, path: str | Path) -> Path:
+        """
+        相対パスはプロジェクトルート基準として扱う。
+        app.py をプロジェクトルートで実行する前提。
+        """
+        p = Path(path).expanduser()
+
+        if p.is_absolute():
+            return p
+
+        return Path.cwd() / p
+
+    def birdnet_package_dir(self) -> Path:
+        """
+        birdnet_analyzer パッケージディレクトリを返す。
+        例:
+          .venv/lib/python3.11/site-packages/birdnet_analyzer
+        """
+        return Path(bcfg.__file__).resolve().parent
+
+    def existing_project_path_or_none(self, path: str | Path | None) -> Path | None:
+        if not path:
+            return None
+
+        p = self.project_path(path)
+
+        if p.exists():
+            return p
+
+        return None
+
+    def candidate_from_bcfg_path(self, value: str | Path | None) -> Path | None:
+        """
+        birdnet_analyzer.config のパスは、相対パスの場合、
+        birdnet_analyzer パッケージディレクトリ基準で使われることがある。
+        """
+        if not value:
+            return None
+
+        p = Path(value).expanduser()
+
+        if p.is_absolute():
+            return p
+
+        return self.birdnet_package_dir() / p
+
+    def resolve_birdnet_model_path(self) -> Path:
+        """
+        BirdNET direct 推論で使う .tflite モデルファイルを決定する。
+
+        birdnet_analyzer のインストール状態によって、
+        config が checkpoints/V2.4 側を指していても実体が別場所にある場合がある。
+        そのため、config.yaml の birdnet.model_path があれば最優先し、
+        それ以外はパッケージ内の .tflite を探索する。
+        """
+        bird_cfg = self.cfg["birdnet"]
+        pkg_dir = self.birdnet_package_dir()
+
+        candidates: list[Path] = []
+
+        # config.yaml で明示指定された場合は最優先。
+        model_path = self.existing_project_path_or_none(bird_cfg.get("model_path"))
+        if model_path is not None:
+            candidates.append(model_path)
+
+        # birdnet_analyzer.config 側の既定値。
+        for attr in ["BIRDNET_MODEL_PATH", "MODEL_PATH"]:
+            value = getattr(bcfg, attr, None)
+            p = self.candidate_from_bcfg_path(value)
+            if p is not None:
+                candidates.append(p)
+
+        # BirdNET v2.4 の代表的な配置。
+        candidates.extend([
+            pkg_dir / "checkpoints" / "V2.4" / "BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            pkg_dir / "checkpoints" / "V2.4" / "BirdNET_GLOBAL_6K_V2.4_Model_FP16.tflite",
+            pkg_dir / "models" / "V2.4" / "BirdNET_GLOBAL_6K_V2.4_Model_FP32.tflite",
+            pkg_dir / "models" / "V2.4" / "BirdNET_GLOBAL_6K_V2.4_Model_FP16.tflite",
+        ])
+
+        # 最後にパッケージ内を広く探索。
+        for p in sorted(pkg_dir.rglob("*.tflite")):
+            candidates.append(p)
+
+        seen: set[str] = set()
+        checked: list[str] = []
+
+        for candidate in candidates:
+            candidate = Path(candidate).expanduser()
+
+            key = str(candidate.resolve()) if candidate.exists() else str(candidate)
+            if key in seen:
+                continue
+
+            seen.add(key)
+            checked.append(str(candidate))
+
+            if candidate.exists() and candidate.is_file():
+                return candidate
+
+        checked_text = "\n  - ".join(checked)
+        raise FileNotFoundError(
+            "BirdNET model file was not found. Checked:\n"
+            f"  - {checked_text}\n\n"
+            "If no .tflite file exists under birdnet_analyzer, reinstall or restore "
+            "the BirdNET model files."
+        )
+
+    def resolve_birdnet_labels_path(self) -> Path:
+        """
+        BirdNET direct 推論で使うラベルファイルを決定する。
+
+        birdnet_analyzer の環境によって、
+        BIRDNET_LABELS_FILE が checkpoints/V2.4 側を指す場合があるが、
+        実際には labels/V2.4 側にラベルが置かれていることがある。
+
+        そのため、config.yaml の labels_ja_path を優先し、
+        存在するラベルファイルを明示的に選ぶ。
+        """
+        bird_cfg = self.cfg["birdnet"]
+        pkg_dir = self.birdnet_package_dir()
+
+        candidates: list[Path] = []
+
+        # 明示指定があれば最優先。
+        labels_path = self.existing_project_path_or_none(bird_cfg.get("labels_path"))
+        if labels_path is not None:
+            candidates.append(labels_path)
+
+        labels_ja_path = self.existing_project_path_or_none(bird_cfg.get("labels_ja_path"))
+        if labels_ja_path is not None:
+            candidates.append(labels_ja_path)
+
+        # birdnet_analyzer の一般的な配置。
+        candidates.extend([
+            pkg_dir / "labels" / "V2.4" / "BirdNET_GLOBAL_6K_V2.4_Labels_ja.txt",
+            pkg_dir / "labels" / "V2.4" / "BirdNET_GLOBAL_6K_V2.4_Labels.txt",
+            pkg_dir / "checkpoints" / "V2.4" / "BirdNET_GLOBAL_6K_V2.4_Labels.txt",
+            pkg_dir / "checkpoints" / "V2.4" / "BirdNET_GLOBAL_6K_V2.4_Labels_ja.txt",
+        ])
+
+        # birdnet_analyzer.config 側の既定値。
+        for attr in ["BIRDNET_LABELS_FILE", "LABELS_FILE"]:
+            value = getattr(bcfg, attr, None)
+            p = self.candidate_from_bcfg_path(value)
+            if p is not None:
+                candidates.append(p)
+
+        seen: set[str] = set()
+        checked: list[str] = []
+
+        for candidate in candidates:
+            candidate = Path(candidate).expanduser()
+
+            key = str(candidate.resolve()) if candidate.exists() else str(candidate)
+            if key in seen:
+                continue
+
+            seen.add(key)
+            checked.append(str(candidate))
+
+            if candidate.exists() and candidate.is_file():
+                return candidate
+
+        checked_text = "\n  - ".join(checked)
+        raise FileNotFoundError(
+            "BirdNET label file was not found. Checked:\n"
+            f"  - {checked_text}"
+        )
+
     def load_birdnet_ja_labels(self) -> dict[str, str]:
         """
         BirdNET_GLOBAL_6K_V2.4_Labels_ja.txt を読み、
@@ -127,7 +300,7 @@ class BirdNETService:
         if not path:
             return {}
 
-        path = Path(path)
+        path = self.project_path(path)
 
         if not path.exists():
             update_state("birdnet", {
@@ -364,13 +537,19 @@ class BirdNETService:
 
     def setup_birdnet_direct(self) -> None:
         """
-        BirdNETモデル・英語ラベル・地域季節フィルタを初期化する。
+        BirdNETモデル・ラベル・地域季節フィルタを初期化する。
         subprocessではなく、同じPythonプロセス内でモデルを常駐させる。
         """
         bird_cfg = self.cfg["birdnet"]
 
-        bcfg.MODEL_PATH = bcfg.BIRDNET_MODEL_PATH
-        bcfg.LABELS_FILE = bcfg.BIRDNET_LABELS_FILE
+        model_file = self.resolve_birdnet_model_path()
+        labels_file = self.resolve_birdnet_labels_path()
+
+        self.model_file = model_file
+        self.labels_file = labels_file
+
+        bcfg.MODEL_PATH = str(model_file)
+        bcfg.LABELS_FILE = str(labels_file)
         bcfg.SAMPLE_RATE = bcfg.BIRDNET_SAMPLE_RATE
         bcfg.SIG_LENGTH = bcfg.BIRDNET_SIG_LENGTH
         bcfg.SIG_OVERLAP = 0.0
@@ -381,7 +560,7 @@ class BirdNETService:
         bcfg.APPLY_SIGMOID = True
         bcfg.SIGMOID_SENSITIVITY = 1.0
 
-        self.labels = self.load_labels(bcfg.LABELS_FILE)
+        self.labels = self.load_labels(labels_file)
         bcfg.LABELS = self.labels
 
         t0 = time.monotonic()
@@ -411,6 +590,8 @@ class BirdNETService:
             "capture_status": "ready",
             "analyze_status": (
                 f"BirdNET direct model loaded: labels={len(self.labels)}, "
+                f"model_file={model_file.name}, "
+                f"labels_file={labels_file.name}, "
                 f"load_elapsed={t1 - t0:.3f}s"
             ),
             "last_elapsed_seconds": None,
@@ -473,6 +654,9 @@ class BirdNETService:
             confidence = float(scores[idx])
             if confidence < min_conf:
                 break
+
+            if idx >= len(self.labels):
+                continue
 
             label = self.labels[idx]
             sci, common = self.split_label(label)

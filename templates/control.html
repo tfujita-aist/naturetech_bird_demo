@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>操作パネル</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Yu Gothic", sans-serif;
+      margin: 0;
+      background: #0b1020;
+      color: white;
+      padding-bottom: 54px;
+    }
+    header {
+      padding: 22px 26px;
+      background: #12203a;
+    }
+    .title {
+      font-size: 34px;
+      font-weight: bold;
+    }
+    main {
+      padding: 24px;
+      display: grid;
+      gap: 22px;
+    }
+    .card {
+      background: #17233f;
+      border-radius: 22px;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+    .section-title {
+      font-size: 30px;
+      font-weight: bold;
+      margin-bottom: 16px;
+    }
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+    button {
+      border: 0;
+      border-radius: 18px;
+      padding: 22px 28px;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      color: white;
+      background: #2d3d66;
+      min-width: 160px;
+      min-height: 76px;
+      transition: transform 0.08s, background 0.15s, opacity 0.15s;
+    }
+    button:hover {
+      transform: translateY(-1px);
+    }
+    button:active {
+      transform: translateY(1px);
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+    button.active {
+      background: #4f8cff;
+      box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.25);
+    }
+    button.inactive {
+      background: #2d3d66;
+      box-shadow: none;
+    }
+    .species {
+      min-width: 210px;
+    }
+    .species.selected {
+      background: #ffd166;
+      color: #111827;
+      box-shadow: 0 0 0 4px rgba(255, 209, 102, 0.25);
+    }
+    .status-bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1000;
+      background: rgba(8, 16, 34, 0.96);
+      border-top: 1px solid rgba(148, 163, 184, 0.25);
+      color: rgba(226, 232, 240, 0.86);
+      font-size: 15px;
+      line-height: 1.45;
+      padding: 8px 16px;
+      box-sizing: border-box;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @media (max-width: 760px) {
+      header {
+        padding: 18px 18px;
+      }
+      main {
+        padding: 18px;
+      }
+      .card {
+        padding: 20px;
+      }
+      .title {
+        font-size: 30px;
+      }
+      .section-title {
+        font-size: 26px;
+      }
+      button {
+        font-size: 25px;
+        min-width: 140px;
+        min-height: 72px;
+        padding: 20px 22px;
+      }
+      .species {
+        min-width: 165px;
+        flex: 1 1 calc(50% - 14px);
+      }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="title">操作パネル</div>
+</header>
+
+<main>
+  <div class="card">
+    <div class="section-title">鳥の声AI判定</div>
+    <div class="button-row">
+      <button id="birdnet_start_btn" class="active" onclick="startBirdnet()">開始</button>
+      <button id="birdnet_stop_btn" class="inactive" onclick="stopBirdnet()">停止</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">鳥の鳴きまねチャレンジ</div>
+    <div class="button-row">
+      {% for key, sp in config.mimic.species.items() %}
+        <button id="control_species_{{ key }}" class="species active" onclick="sendMimicCommand('{{ key }}')">
+          {{ sp.japanese_name }}
+        </button>
+      {% endfor %}
+    </div>
+  </div>
+</main>
+
+<div id="status" class="status-bar">Status: loading...</div>
+
+<script>
+let controlBusy = false;
+
+function setStartStopButtons(startId, stopId, isRunning) {
+  const startBtn = document.getElementById(startId);
+  const stopBtn = document.getElementById(stopId);
+
+  if (!startBtn || !stopBtn) return;
+
+  if (isRunning) {
+    startBtn.classList.remove("active");
+    startBtn.classList.add("inactive");
+    stopBtn.classList.remove("inactive");
+    stopBtn.classList.add("active");
+  } else {
+    startBtn.classList.remove("inactive");
+    startBtn.classList.add("active");
+    stopBtn.classList.remove("active");
+    stopBtn.classList.add("inactive");
+  }
+}
+
+function setSpeciesButtonsDisabled(disabled) {
+  document.querySelectorAll(".species").forEach(btn => {
+    btn.disabled = disabled;
+  });
+}
+
+function setSelectedSpecies(speciesKey) {
+  document.querySelectorAll(".species").forEach(btn => {
+    btn.classList.remove("selected");
+    btn.classList.add("active");
+  });
+
+  if (!speciesKey) return;
+
+  const btn = document.getElementById(`control_species_${speciesKey}`);
+  if (btn) {
+    btn.classList.add("selected");
+    btn.classList.remove("active");
+  }
+}
+
+async function startBirdnet() {
+  await fetch("/api/birdnet/start", {method: "POST"});
+  await refreshState();
+}
+
+async function stopBirdnet() {
+  await fetch("/api/birdnet/stop", {method: "POST"});
+  await refreshState();
+}
+
+async function sendMimicCommand(speciesKey) {
+  if (controlBusy) return;
+
+  controlBusy = true;
+  setSelectedSpecies(speciesKey);
+
+  try {
+    await fetch(`/api/control/mimic/${speciesKey}?source=control`, {
+      method: "POST",
+    });
+  } finally {
+    setTimeout(() => {
+      controlBusy = false;
+    }, 600);
+  }
+}
+
+async function refreshState() {
+  try {
+    const r = await fetch("/api/state");
+    const s = await r.json();
+
+    setStartStopButtons("birdnet_start_btn", "birdnet_stop_btn", s.birdnet.running);
+
+    const activeSpecies =
+      (s.control && s.control.active_species_key) ||
+      (s.mimic && s.mimic.active_species_key) ||
+      null;
+
+    setSelectedSpecies(activeSpecies);
+
+    const busy = Boolean(s.mimic && s.mimic.running);
+    setSpeciesButtonsDisabled(busy);
+
+    let commandText = "-";
+    if (s.control && s.control.mimic_command) {
+      commandText = `${s.control.mimic_command.species_key} / id=${s.control.mimic_command.id}`;
+    }
+
+    document.getElementById("status").textContent =
+      `Status: BirdNET=${s.birdnet.status} / running=${s.birdnet.running} | ` +
+      `Mimic=${s.mimic.status} / running=${s.mimic.running} | ` +
+      `species=${activeSpecies || "-"} | command=${commandText}`;
+
+  } catch (e) {
+    document.getElementById("status").textContent =
+      `Status error: ${e.message}`;
+  }
+}
+
+setInterval(refreshState, 500);
+refreshState();
+</script>
+</body>
+</html>
