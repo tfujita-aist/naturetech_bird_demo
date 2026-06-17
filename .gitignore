@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*$py.class
 .Python
 .venv/
 venv/
@@ -10,6 +11,10 @@ env/
 
 # macOS
 .DS_Store
+
+# IDE
+.vscode/
+.idea/
 
 # Logs and runtime outputs
 logs/
@@ -34,17 +39,24 @@ work/mimic_recordings/
 *.aiff
 *.flac
 
-# Keep reference_sounds directory, but ignore wav files by default.
-# If you want to publish demo reference WAVs, remove the next line.
+# reference_sounds 内の WAV は原則除外
 reference_sounds/*.wav
 # ただし、デモ用のお手本音声 scene WAV は Git 管理する
 !reference_sounds/*_scene*.wav
+# reference_sounds 内の作業用ファイルは除外
+reference_sounds/*.xlsx
+reference_sounds/*.xls
+reference_sounds/*.sh
+reference_sounds/*.zip
+reference_sounds/*.txt
+
 # 空ディレクトリ維持用
 !reference_sounds/.gitkeep
+!logs/.gitkeep
+!work/.gitkeep
+!work/birdnet_in/.gitkeep
+!work/birdnet_out/.gitkeep
+!work/mimic_recordings/.gitkeep
 
 test_out_lowconf/
 tools/*.wav
-
-# IDE
-.vscode/
-.idea/
