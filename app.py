@@ -26,6 +26,12 @@ Path("work/mimic_recordings").mkdir(parents=True, exist_ok=True)
 APP = FastAPI()
 
 APP.mount(
+    "/static",
+    StaticFiles(directory="static"),
+    name="static",
+)
+
+APP.mount(
     "/reference_sounds",
     StaticFiles(directory="reference_sounds"),
     name="reference_sounds",

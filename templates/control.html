@@ -12,12 +12,34 @@
       padding-bottom: 54px;
     }
     header {
-      padding: 22px 26px;
+      padding: 16px 22px;
       background: #12203a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
     }
     .title {
-      font-size: 34px;
+      font-size: 32px;
       font-weight: bold;
+      line-height: 1.25;
+    }
+    .header-logos {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 14px;
+      flex-shrink: 0;
+    }
+    .logo-aist {
+      width: 210px;
+      height: auto;
+      display: block;
+    }
+    .logo-nprc {
+      width: 76px;
+      height: auto;
+      display: block;
     }
     main {
       padding: 24px;
@@ -101,7 +123,21 @@
 
     @media (max-width: 760px) {
       header {
-        padding: 18px 18px;
+        padding: 16px 18px;
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .title {
+        font-size: 30px;
+      }
+      .header-logos {
+        justify-content: flex-start;
+      }
+      .logo-aist {
+        width: 190px;
+      }
+      .logo-nprc {
+        width: 68px;
       }
       main {
         padding: 18px;
@@ -131,6 +167,10 @@
 <body>
 <header>
   <div class="title">操作パネル</div>
+  <div class="header-logos">
+    <img class="logo-aist" src="/static/logos/aist_vision_logo_jp_rw.png" alt="産総研">
+    <img class="logo-nprc" src="/static/logos/aist_nprc_logo_rw_bkw.png" alt="ネイチャーポジティブ技術実装センター">
+  </div>
 </header>
 
 <main>

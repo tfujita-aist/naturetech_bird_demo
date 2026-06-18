@@ -12,13 +12,35 @@
       padding-bottom: 54px;
     }
     header {
-      padding: 24px 36px;
+      padding: 18px 36px;
       background: #12203a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 28px;
     }
     .title {
       font-size: 34px;
       font-weight: bold;
       line-height: 1.25;
+      white-space: nowrap;
+    }
+    .header-logos {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 22px;
+      flex-shrink: 0;
+    }
+    .logo-aist {
+      width: 260px;
+      height: auto;
+      display: block;
+    }
+    .logo-nprc {
+      width: 90px;
+      height: auto;
+      display: block;
     }
     main {
       padding: 36px;
@@ -133,6 +155,22 @@
     }
 
     @media (max-width: 900px) {
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .title {
+        white-space: normal;
+      }
+      .header-logos {
+        justify-content: flex-start;
+      }
+      .logo-aist {
+        width: 220px;
+      }
+      .logo-nprc {
+        width: 76px;
+      }
       main {
         padding: 24px;
       }
@@ -151,6 +189,10 @@
 <body>
 <header>
   <div class="title">鳥の声AI判定 / BirdNET</div>
+  <div class="header-logos">
+    <img class="logo-aist" src="/static/logos/aist_vision_logo_jp_rw.png" alt="産総研">
+    <img class="logo-nprc" src="/static/logos/aist_nprc_logo_rw_bkw.png" alt="ネイチャーポジティブ技術実装センター">
+  </div>
 </header>
 
 <main>
