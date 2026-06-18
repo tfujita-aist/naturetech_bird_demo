@@ -8,6 +8,7 @@ import time
 from io import BytesIO
 from pathlib import Path
 
+import numpy as np
 import yaml
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
@@ -20,6 +21,7 @@ from mimic_service import MimicService
 from state import get_state, update_state
 
 
+Path("static").mkdir(parents=True, exist_ok=True)
 Path("reference_sounds").mkdir(parents=True, exist_ok=True)
 Path("work/mimic_recordings").mkdir(parents=True, exist_ok=True)
 
@@ -58,13 +60,14 @@ def load_config(path: str = "config.yaml") -> dict:
 
 def ensure_dirs(cfg: dict) -> None:
     paths = [
+        "static",
+        "templates",
+        "reference_sounds",
         cfg["birdnet"]["input_dir"],
         cfg["birdnet"]["output_dir"],
         cfg["mimic"]["output_dir"],
         Path(cfg["birdnet"]["log_csv"]).parent,
         Path(cfg["mimic"]["log_csv"]).parent,
-        "templates",
-        "reference_sounds",
     ]
 
     for p in paths:
@@ -185,6 +188,21 @@ def make_mimic_command(species_key: str, source: str) -> dict:
         "source": source,
         "created_at_ms": command_id,
     }
+
+
+def downsample_waveform(y: np.ndarray, max_points: int) -> list[float]:
+    if y.size == 0:
+        return []
+
+    y = np.asarray(y, dtype=np.float32).reshape(-1)
+
+    if y.size <= max_points:
+        return [float(v) for v in y]
+
+    indexes = np.linspace(0, y.size - 1, max_points).astype(np.int64)
+    y2 = y[indexes]
+
+    return [float(v) for v in y2]
 
 
 @APP.on_event("startup")
@@ -336,6 +354,56 @@ async def control_qr_svg():
 @APP.get("/api/state")
 async def api_state():
     return JSONResponse(get_state())
+
+
+@APP.get("/api/audio/waveform/birdnet")
+async def api_audio_waveform_birdnet(
+    seconds: float = Query(default=3.0, ge=0.2, le=10.0),
+    max_points: int = Query(default=1200, ge=100, le=5000),
+):
+    if AUDIO_ENGINE is None:
+        return JSONResponse(
+            {"error": "Audio engine is not initialized"},
+            status_code=500,
+        )
+
+    if CONFIG is None:
+        return JSONResponse(
+            {"error": "Config is not initialized"},
+            status_code=500,
+        )
+
+    channel = int(CONFIG["audio"].get("birdnet_channel", 0))
+    sample_rate = int(CONFIG["audio"].get("sample_rate", 48000))
+
+    y = AUDIO_ENGINE.get_recent_audio(seconds=seconds, channel=channel)
+    y = np.asarray(y, dtype=np.float32).reshape(-1)
+
+    if y.size == 0:
+        return JSONResponse({
+            "ok": True,
+            "channel": channel,
+            "sample_rate": sample_rate,
+            "seconds": seconds,
+            "peak": 0.0,
+            "rms": 0.0,
+            "samples": [],
+        })
+
+    peak = float(np.max(np.abs(y)))
+    rms = float(np.sqrt(np.mean(y ** 2)))
+
+    samples = downsample_waveform(y, max_points=max_points)
+
+    return JSONResponse({
+        "ok": True,
+        "channel": channel,
+        "sample_rate": sample_rate,
+        "seconds": seconds,
+        "peak": peak,
+        "rms": rms,
+        "samples": samples,
+    })
 
 
 @APP.post("/api/birdnet/start")

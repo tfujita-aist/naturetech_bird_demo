@@ -114,12 +114,52 @@
       background: #081022;
       border-radius: 999px;
       overflow: hidden;
-      margin: 14px 0 30px 0;
+      margin: 14px 0 24px 0;
     }
     .bar {
       height: 100%;
       width: 0%;
       background: #70d87b;
+    }
+    .wave-card {
+      margin: 24px 0 0 0;
+      background: #081022;
+      border-radius: 18px;
+      padding: 20px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .wave-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 12px;
+    }
+    .wave-title {
+      font-size: 34px;
+      font-weight: bold;
+      line-height: 1.2;
+    }
+    .wave-status {
+      font-size: 20px;
+      opacity: 0.84;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      white-space: nowrap;
+    }
+    .wave-wrap {
+      width: 100%;
+      overflow: hidden;
+      border-radius: 14px;
+      background: #020617;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      box-sizing: border-box;
+    }
+    canvas#wave_canvas {
+      width: 100%;
+      height: 380px;
+      background: #020617;
+      display: block;
     }
     .result-panel {
       background: rgba(0,0,0,0.14);
@@ -183,6 +223,13 @@
       .sub {
         font-size: 24px;
       }
+      .wave-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+      .wave-status {
+        white-space: normal;
+      }
     }
   </style>
 </head>
@@ -205,6 +252,16 @@
     <div class="meter-label">CH1 / UMG15B 音量</div>
     <div class="meter"><div id="bar1" class="bar"></div></div>
 
+    <div class="wave-card">
+      <div class="wave-header">
+        <div class="wave-title">入力音声の波形</div>
+        <div id="wave_status" class="wave-status">waveform: loading...</div>
+      </div>
+      <div class="wave-wrap">
+        <canvas id="wave_canvas"></canvas>
+      </div>
+    </div>
+
     <div id="area" class="result-panel">
       <div class="big">停止中</div>
       <div class="sub">開始を押してください</div>
@@ -215,6 +272,11 @@
 <div id="status" class="status-bar">Status: loading...</div>
 
 <script>
+const WAVEFORM_SECONDS = 3.0;
+const WAVEFORM_MAX_POINTS = 1200;
+
+let lastWaveformSamples = [];
+
 function pct(x) {
   return Math.min(100, Math.max(0, x * 1000));
 }
@@ -241,6 +303,262 @@ function setStartStopButtons(startId, stopId, isRunning) {
 
     stopBtn.classList.remove("active");
     stopBtn.classList.add("inactive");
+  }
+}
+
+function resizeWaveCanvas() {
+  const canvas = document.getElementById("wave_canvas");
+  if (!canvas) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+
+  const newWidth = Math.max(700, Math.floor(rect.width * dpr));
+  const newHeight = Math.max(340, Math.floor(rect.height * dpr));
+
+  if (canvas.width !== newWidth || canvas.height !== newHeight) {
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+  }
+}
+
+function drawWaveform(samples, message = "") {
+  const canvas = document.getElementById("wave_canvas");
+  if (!canvas) return;
+
+  resizeWaveCanvas();
+
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#020617";
+  ctx.fillRect(0, 0, w, h);
+
+  const plotLeft = Math.floor(w * 0.07);
+  const plotRight = Math.floor(w * 0.985);
+  const plotTop = Math.floor(h * 0.12);
+  const plotBottom = Math.floor(h * 0.74);
+  const plotW = plotRight - plotLeft;
+  const plotH = plotBottom - plotTop;
+  const midY = plotTop + plotH / 2;
+
+  drawWaveAxes(ctx, {
+    h,
+    plotLeft,
+    plotRight,
+    plotTop,
+    plotBottom,
+    midY,
+    seconds: WAVEFORM_SECONDS,
+  });
+
+  if (!samples || samples.length === 0) {
+    drawOverlayMessage(ctx, message || "入力音声を待っています", plotLeft, plotRight, plotTop, plotBottom);
+    return;
+  }
+
+  ctx.save();
+
+  ctx.strokeStyle = "#70d87b";
+  ctx.lineWidth = Math.max(2.2, h * 0.0065);
+  ctx.globalAlpha = 0.95;
+
+  ctx.beginPath();
+
+  const n = samples.length;
+  const amp = plotH * 0.48;
+
+  for (let i = 0; i < n; i++) {
+    const x = plotLeft + (i / Math.max(1, n - 1)) * plotW;
+    let v = Number(samples[i] || 0);
+
+    if (!Number.isFinite(v)) {
+      v = 0;
+    }
+
+    v = Math.max(-1, Math.min(1, v));
+    v = Math.tanh(v * 2.2);
+
+    const y = midY - v * amp;
+
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+  }
+
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawWaveAxes(ctx, p) {
+  const {
+    h,
+    plotLeft,
+    plotRight,
+    plotTop,
+    plotBottom,
+    midY,
+    seconds,
+  } = p;
+
+  const plotW = plotRight - plotLeft;
+  const plotH = plotBottom - plotTop;
+
+  ctx.fillStyle = "#020617";
+  ctx.fillRect(plotLeft, plotTop, plotW, plotH);
+
+  const tickFont = `${Math.max(18, h * 0.060)}px system-ui, -apple-system, BlinkMacSystemFont, sans-serif`;
+  const labelFont = `bold ${Math.max(21, h * 0.070)}px system-ui, -apple-system, BlinkMacSystemFont, sans-serif`;
+
+  const ampTicks = [-1.0, -0.5, 0.0, 0.5, 1.0];
+
+  for (const amp of ampTicks) {
+    const y = midY - amp * (plotH / 2);
+
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.16)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(plotLeft, y);
+    ctx.lineTo(plotRight, y);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(226, 232, 240, 0.78)";
+    ctx.font = tickFont;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillText(amp.toFixed(1), plotLeft - 12, y);
+  }
+
+  const secMax = Math.max(1, seconds || 3.0);
+  const secTicks = Math.floor(secMax);
+
+  for (let i = 0; i <= secTicks; i++) {
+    const x = plotLeft + plotW * (i / secMax);
+
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.16)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, plotTop);
+    ctx.lineTo(x, plotBottom);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(226, 232, 240, 0.78)";
+    ctx.font = tickFont;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(`${i}s`, x, plotBottom + 10);
+  }
+
+  ctx.strokeStyle = "rgba(226, 232, 240, 0.45)";
+  ctx.lineWidth = 1.8;
+  ctx.strokeRect(plotLeft, plotTop, plotW, plotH);
+
+  ctx.fillStyle = "rgba(226, 232, 240, 0.88)";
+  ctx.font = labelFont;
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.fillText("時間（秒）", plotLeft + plotW / 2, plotBottom + 54);
+
+  ctx.save();
+  ctx.translate(32, plotTop + plotH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("振幅", 0, 0);
+  ctx.restore();
+
+  ctx.strokeStyle = "rgba(226, 232, 240, 0.55)";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(plotLeft, midY);
+  ctx.lineTo(plotRight, midY);
+  ctx.stroke();
+}
+
+function drawOverlayMessage(ctx, message, plotLeft, plotRight, plotTop, plotBottom) {
+  const plotW = plotRight - plotLeft;
+  const plotH = plotBottom - plotTop;
+  const cx = plotLeft + plotW / 2;
+  const cy = plotTop + plotH * 0.42;
+
+  const fontSize = Math.max(26, ctx.canvas.height * 0.085);
+  ctx.font = `bold ${fontSize}px system-ui, -apple-system, BlinkMacSystemFont, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  const metrics = ctx.measureText(message);
+  const padX = fontSize * 0.85;
+  const padY = fontSize * 0.45;
+  const boxW = metrics.width + padX * 2;
+  const boxH = fontSize + padY * 2;
+  const x = cx - boxW / 2;
+  const y = cy - boxH / 2;
+
+  ctx.save();
+  ctx.globalAlpha = 0.92;
+  ctx.fillStyle = "#020617";
+  roundRect(ctx, x, y, boxW, boxH, 18);
+  ctx.fill();
+
+  ctx.globalAlpha = 1.0;
+  ctx.strokeStyle = "rgba(112, 216, 123, 0.65)";
+  ctx.lineWidth = 3;
+  roundRect(ctx, x, y, boxW, boxH, 18);
+  ctx.stroke();
+
+  ctx.fillStyle = "#70d87b";
+  ctx.fillText(message, cx, cy);
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.lineTo(x + w - rr, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+  ctx.lineTo(x + w, y + h - rr);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+  ctx.lineTo(x + rr, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+  ctx.lineTo(x, y + rr);
+  ctx.quadraticCurveTo(x, y, x + rr, y);
+  ctx.closePath();
+}
+
+async function refreshWaveform() {
+  try {
+    const r = await fetch(
+      `/api/audio/waveform/birdnet?seconds=${WAVEFORM_SECONDS}&max_points=${WAVEFORM_MAX_POINTS}`,
+      {cache: "no-store"}
+    );
+
+    const data = await r.json();
+
+    if (!r.ok || data.error) {
+      document.getElementById("wave_status").textContent =
+        `waveform error: ${data.error || r.status}`;
+      drawWaveform(lastWaveformSamples, "波形を取得できません");
+      return;
+    }
+
+    lastWaveformSamples = data.samples || [];
+
+    document.getElementById("wave_status").textContent =
+      `CH${Number(data.channel || 0) + 1} / peak=${Number(data.peak || 0).toFixed(4)} / rms=${Number(data.rms || 0).toFixed(4)}`;
+
+    drawWaveform(lastWaveformSamples);
+
+  } catch (e) {
+    document.getElementById("wave_status").textContent =
+      `waveform error: ${e.message}`;
+    drawWaveform(lastWaveformSamples, "波形を取得できません");
   }
 }
 
@@ -368,8 +686,17 @@ async function refreshState() {
   }
 }
 
+window.addEventListener("resize", () => {
+  drawWaveform(lastWaveformSamples);
+});
+
+drawWaveform([], "入力音声を待っています");
+
 setInterval(refreshState, 500);
+setInterval(refreshWaveform, 120);
+
 refreshState();
+refreshWaveform();
 </script>
 </body>
 </html>
