@@ -273,7 +273,7 @@
 
 <script>
 const WAVEFORM_SECONDS = 3.0;
-const WAVEFORM_MAX_POINTS = 1200;
+const WAVEFORM_MAX_POINTS = 600;
 
 let lastWaveformSamples = [];
 
@@ -699,7 +699,7 @@ window.addEventListener("resize", () => {
 drawWaveform([], "入力音声を待っています");
 
 setInterval(refreshState, 500);
-setInterval(refreshWaveform, 120);
+setInterval(refreshWaveform, 1000);
 
 refreshState();
 refreshWaveform();
