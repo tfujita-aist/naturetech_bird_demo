@@ -336,10 +336,14 @@ function drawWaveform(samples, message = "") {
   ctx.fillStyle = "#020617";
   ctx.fillRect(0, 0, w, h);
 
-  const plotLeft = Math.floor(w * 0.07);
-  const plotRight = Math.floor(w * 0.985);
-  const plotTop = Math.floor(h * 0.12);
-  const plotBottom = Math.floor(h * 0.74);
+  const dpr = window.devicePixelRatio || 1;
+
+  const axisLabelX = 34 * dpr;
+  const plotLeft = Math.floor(132 * dpr);
+  const plotRight = Math.floor(w - 22 * dpr);
+  const plotTop = Math.floor(38 * dpr);
+  const plotBottom = Math.floor(h - 76 * dpr);
+
   const plotW = plotRight - plotLeft;
   const plotH = plotBottom - plotTop;
   const midY = plotTop + plotH / 2;
@@ -406,6 +410,8 @@ function drawWaveAxes(ctx, p) {
     seconds,
   } = p;
 
+  const dpr = window.devicePixelRatio || 1;
+
   const plotW = plotRight - plotLeft;
   const plotH = plotBottom - plotTop;
 
@@ -431,7 +437,7 @@ function drawWaveAxes(ctx, p) {
     ctx.font = tickFont;
     ctx.textAlign = "right";
     ctx.textBaseline = "middle";
-    ctx.fillText(amp.toFixed(1), plotLeft - 12, y);
+    ctx.fillText(amp.toFixed(1), plotLeft - 24 * dpr, y);
   }
 
   const secMax = Math.max(1, seconds || 3.0);
@@ -463,10 +469,10 @@ function drawWaveAxes(ctx, p) {
 
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  ctx.fillText("時間（秒）", plotLeft + plotW / 2, plotBottom + 54);
+  ctx.fillText("時間（秒）", plotLeft + plotW / 2, plotBottom + 36 * dpr);
 
   ctx.save();
-  ctx.translate(32, plotTop + plotH / 2);
+  ctx.translate(34 * dpr, plotTop + plotH / 2);
   ctx.rotate(-Math.PI / 2);
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
