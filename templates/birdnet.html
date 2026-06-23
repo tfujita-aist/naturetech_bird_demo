@@ -102,6 +102,19 @@
       opacity: 0.75;
       line-height: 1.5;
     }
+    .geo-line {
+      margin-top: 18px;
+      font-size: 28px;
+      line-height: 1.45;
+      color: #dbeafe;
+      font-weight: bold;
+    }
+    .geo-note {
+      margin-top: 8px;
+      font-size: 18px;
+      line-height: 1.45;
+      color: rgba(226, 232, 240, 0.72);
+    }
     .meter-label {
       font-size: 28px;
       opacity: 0.95;
@@ -175,6 +188,13 @@
       line-height: 1.6;
       opacity: 0.88;
     }
+    .candidate-item {
+      margin-top: 4px;
+    }
+    .candidate-geo {
+      color: #bfdbfe;
+      font-weight: bold;
+    }
     .status-bar {
       position: fixed;
       left: 0;
@@ -222,6 +242,9 @@
       }
       .sub {
         font-size: 24px;
+      }
+      .geo-line {
+        font-size: 23px;
       }
       .wave-header {
         align-items: flex-start;
@@ -285,6 +308,32 @@ function birdName(item) {
   return item.display_name || item.japanese_name || item.common_name || item.scientific_name || "";
 }
 
+function formatGeoText(item) {
+  if (!item || !item.geo_enabled) {
+    return "";
+  }
+
+  if (item.geo_score === null || item.geo_score === undefined || item.geo_label === null || item.geo_label === undefined) {
+    return "この地点・時期での出現可能性: 算出不可";
+  }
+
+  const score = Number(item.geo_score || 0);
+  return `この地点・時期での出現可能性: ${item.geo_label} (${score.toFixed(2)})`;
+}
+
+function formatGeoInline(item) {
+  if (!item || !item.geo_enabled) {
+    return "";
+  }
+
+  if (item.geo_score === null || item.geo_score === undefined || item.geo_label === null || item.geo_label === undefined) {
+    return "出現可能性: 算出不可";
+  }
+
+  const score = Number(item.geo_score || 0);
+  return `出現可能性: ${item.geo_label} (${score.toFixed(2)})`;
+}
+
 function setStartStopButtons(startId, stopId, isRunning) {
   const startBtn = document.getElementById(startId);
   const stopBtn = document.getElementById(stopId);
@@ -331,14 +380,12 @@ function drawWaveform(samples, message = "") {
   const ctx = canvas.getContext("2d");
   const w = canvas.width;
   const h = canvas.height;
+  const dpr = window.devicePixelRatio || 1;
 
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = "#020617";
   ctx.fillRect(0, 0, w, h);
 
-  const dpr = window.devicePixelRatio || 1;
-
-  const axisLabelX = 34 * dpr;
   const plotLeft = Math.floor(132 * dpr);
   const plotRight = Math.floor(w - 22 * dpr);
   const plotTop = Math.floor(38 * dpr);
@@ -457,7 +504,7 @@ function drawWaveAxes(ctx, p) {
     ctx.font = tickFont;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillText(`${i}s`, x, plotBottom + 10);
+    ctx.fillText(`${i}s`, x, plotBottom + 10 * dpr);
   }
 
   ctx.strokeStyle = "rgba(226, 232, 240, 0.45)";
@@ -493,7 +540,9 @@ function drawOverlayMessage(ctx, message, plotLeft, plotRight, plotTop, plotBott
   const cx = plotLeft + plotW / 2;
   const cy = plotTop + plotH * 0.42;
 
-  const fontSize = Math.max(26, ctx.canvas.height * 0.085);
+  const dpr = window.devicePixelRatio || 1;
+  const fontSize = 26 * dpr;
+
   ctx.font = `bold ${fontSize}px system-ui, -apple-system, BlinkMacSystemFont, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -509,13 +558,13 @@ function drawOverlayMessage(ctx, message, plotLeft, plotRight, plotTop, plotBott
   ctx.save();
   ctx.globalAlpha = 0.92;
   ctx.fillStyle = "#020617";
-  roundRect(ctx, x, y, boxW, boxH, 18);
+  roundRect(ctx, x, y, boxW, boxH, 18 * dpr);
   ctx.fill();
 
   ctx.globalAlpha = 1.0;
   ctx.strokeStyle = "rgba(112, 216, 123, 0.65)";
-  ctx.lineWidth = 3;
-  roundRect(ctx, x, y, boxW, boxH, 18);
+  ctx.lineWidth = 3 * dpr;
+  roundRect(ctx, x, y, boxW, boxH, 18 * dpr);
   ctx.stroke();
 
   ctx.fillStyle = "#70d87b";
@@ -583,11 +632,14 @@ function renderStopped(det) {
     const top = det.top[0];
     const name = birdName(top);
     const conf = Math.round(top.confidence * 100);
+    const geo = formatGeoText(top);
 
     document.getElementById("area").innerHTML = `
       <div class="sub">停止中 / 最後の判定結果</div>
       <div class="big">${name}</div>
       <div class="sub">AIの自信度：${conf}%</div>
+      ${geo ? `<div class="geo-line">${geo}</div>` : ""}
+      <div class="geo-note">※ 出現可能性は、地域・季節モデルに基づく補助的な目安です。</div>
       <div class="small">${top.scientific_name || ""} / ${top.common_name || ""}</div>
     `;
     return;
@@ -616,11 +668,14 @@ function renderDetection(det) {
     const top = det.top[0];
     const name = birdName(top);
     const conf = Math.round(top.confidence * 100);
+    const geo = formatGeoText(top);
 
     let html = `
       <div class="sub">${det.time || ""}</div>
       <div class="big">${name}</div>
       <div class="sub">AIの自信度：${conf}%</div>
+      ${geo ? `<div class="geo-line">${geo}</div>` : ""}
+      ${top.geo_enabled ? `<div class="geo-note">※ 出現可能性は、地域・季節モデルに基づく補助的な目安です。</div>` : ""}
       <div class="small">${top.scientific_name || ""} / ${top.common_name || ""}</div>
     `;
 
@@ -628,10 +683,12 @@ function renderDetection(det) {
       html += `<div class="candidate-list">ほかの候補：`;
       for (let i = 1; i < det.top.length; i++) {
         const item = det.top[i];
-        html += `${birdName(item)} ${Math.round(item.confidence * 100)}%`;
-        if (i < det.top.length - 1) {
-          html += ` / `;
+        const geoInline = formatGeoInline(item);
+        html += `<div class="candidate-item">${birdName(item)} ${Math.round(item.confidence * 100)}%`;
+        if (geoInline) {
+          html += ` / <span class="candidate-geo">${geoInline}</span>`;
         }
+        html += `</div>`;
       }
       html += `</div>`;
     }
@@ -664,11 +721,16 @@ async function refreshState() {
       Boolean(s.birdnet.running)
     );
 
+    const geoStatus = s.birdnet.latest_detection && s.birdnet.latest_detection.geo
+      ? s.birdnet.latest_detection.geo.status
+      : "-";
+
     document.getElementById("status").textContent =
       `Status: ${s.birdnet.status} / running=${s.birdnet.running} | ` +
       `capture=${s.birdnet.capture_status || ""} | ` +
       `analyze=${s.birdnet.analyze_status || ""} | ` +
       `elapsed=${s.birdnet.last_elapsed_seconds ?? "-"} s | ` +
+      `geo=${geoStatus} | ` +
       `audio=${s.audio.status} | CH1=${Number(s.audio.level_ch1 || 0).toFixed(5)}`;
 
     const b = s.birdnet;

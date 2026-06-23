@@ -7,7 +7,7 @@ audio:
 #=======================
   channels: 2
   # list_audio_devices.py で表示されたデバイス番号と名前を設定する
-  device_index: 5
+  device_index: 1
   device_name_contains: "Steinberg UR22C"
   # CH1 = UR22C INPUT 1 = UETAX UMG15B = BirdNET用
   # CH2 = UR22C INPUT 2 = UETAX UM230C = 鳴き真似用
@@ -35,6 +35,9 @@ birdnet:
   # .venv 配下ではなく、プロジェクト配下に置くことで .venv を作り直しても消えないようにする
   model_path: "models/BirdNET_V2.4/audio-model.tflite"
 
+  # BirdNET v2.4 メタモデル
+  meta_model_path: "models/BirdNET_V2.4/meta-model.tflite"
+
   # BirdNET v2.4 日本語ラベル
   labels_ja_path: ".venv/lib/python3.11/site-packages/birdnet_analyzer/labels/V2.4/BirdNET_GLOBAL_6K_V2.4_Labels_ja.txt"
 
@@ -59,17 +62,12 @@ birdnet:
   tflite_threads: 1
 
   # direct版でBirdNETのlat/lon/weekの種リスト補正を行うかどうか (true の場合は lat/lon/week の補正を有効にする)
-  use_location_filter: false
+  use_location_filter: true
 
-  # 緯度経度は熊本市付近  TODO 会場の住所に合わせる
-  # week は
-  #   2026/7/1-7/7 : 25
-  #   2026/7/8-7/14 : 26
-  #   2026/7/15-7/21 : 27
-  #   2026/7/22-7/31 : 28
-  latitude: 32.803
-  longitude: 130.707
-  week: 26
+  # 緯度・経度・週は、2025/4/17 につくば市で撮影 (録音) されたオオタカのファイルに合わせている
+  latitude: 36.061
+  longitude: 140.1266
+  week: 15
 
   # cli版ではinput_dirにWAV、output_dirにCSVが生成される
   # direct版ではWAV/CSVは生成しないが、log_csvには検出ログを書き込む
